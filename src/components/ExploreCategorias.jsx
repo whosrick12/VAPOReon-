@@ -6,7 +6,7 @@ export default function ExploreCategorias() {
 
     <section className="categorias-home">
 
-      <h2>Explore por Categoria</h2>
+      <h2>Explore por Categorias</h2>
 
       <div className="categorias-grid">
 
