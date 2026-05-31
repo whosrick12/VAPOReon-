@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { Routes, Route } from "react-router-dom";
-
 import CardPrincipal from "./components/CardPrincipal";
 import Header from "./components/Header";
 import CardsPromocoes from "./components/CardsPromocoes";
 import DetalheJogo from "./components/DetalhesJogo";
 import PopupPromocao from "./components/PopupPromocao";
 import ExploreCategorias from "./components/ExploreCategorias";
-
 import API from "./services/api";
 
 function App() {
