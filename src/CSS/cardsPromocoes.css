@@ -71,12 +71,82 @@
 
 .game-card {
   position: relative;
+
   width: 310px;
-  height: 360px; /* 🔥 menor e mais equilibrado */
-  background: linear-gradient(to bottom, #1b2838, #1f5a7c);
+  height: 360px;
+
   display: flex;
   flex-direction: column;
-  overflow: visible;
+
+  overflow: hidden;
+
+  background: linear-gradient(
+    135deg,
+    #050816,
+    #0a1029,
+    rgb(8, 12, 41),
+    #0b0424,
+    #0a1029
+  );
+
+  background-size: 400% 400%;
+
+  animation: cardGradient 8s ease infinite;
+}
+.game-card::before {
+  content: "";
+
+  position: absolute;
+
+  width: 500px;
+  height: 500px;
+
+  top: -250px;
+  left: -250px;
+
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.18),
+    transparent 65%
+  );
+
+  animation: blueOrb 12s linear infinite;
+
+  pointer-events: none;
+
+  z-index: 1;
+}
+
+.game-card::after {
+  content: "";
+
+  position: absolute;
+
+  width: 400px;
+  height: 400px;
+
+  bottom: -200px;
+  right: -200px;
+
+  background: radial-gradient(
+    circle,
+    rgba(139, 92, 246, 0.20),
+    transparent 65%
+  );
+
+  animation: purpleOrb 10s linear infinite;
+
+  pointer-events: none;
+
+  z-index: 1;
+}
+
+.game-card img,
+.game-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .game-card img {
@@ -87,57 +157,173 @@
 
 .game-info {
   flex: 1;
-  padding: 10px;
+
+  padding: 16px 18px 10px 18px;
+
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .game-info h3 {
-  color: #fff;
+  margin-top: 4px;
+  color: #ffffff;
   font-size: 20px;
-  font-weight: 300;
-  margin-bottom: 6px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif; 
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  line-height: 1.0;
 }
-
 .game-info p {
   color: #acdbf5;
   font-size: 13px;
   line-height: 18px;
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> b768a8d (Corrigindo bugs e melhorando a estilização)
 .price-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+
+  gap: 12px;
+
+  margin-top: auto;
+
+  transform: translateY(-12px);
 }
 
 .discount {
-  background: #4c6b22;
-  color: #b9f34b;
-  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 60px;
+  height: 44px;
+
+  color: white;
+
+  font-size: 20px;
+  font-weight: bold;
+
+  padding: 0 10px;
+
+  position: relative;
+
+  overflow: hidden;
+
+  background: rgba(30, 30, 30, 0.55);
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  backdrop-filter: blur(10px);
+
+  border-radius: 8px;
+
+  box-shadow:
+    0 0 10px rgba(0,0,0,0.35),
+    inset 0 0 15px rgba(255,255,255,0.02);
+}
+.prices {
+  flex: 1;
+
+  padding: 6px 12px;
+
+  position: relative;
+
+  overflow: hidden;
+
+  background: rgba(30, 30, 30, 0.55);
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  backdrop-filter: blur(10px);
+
+  border-radius: 8px;
+
+  box-shadow:
+    0 0 10px rgba(0,0,0,0.35),
+    inset 0 0 15px rgba(255,255,255,0.02);
+}
+
+.discount::before,
+.discount::after,
+.prices::before,
+.prices::after {
+  content: "";
+
+  position: absolute;
+
+  inset: -70%;
+
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,0.06),
+    transparent 55%
+  );
+
+  opacity: 0.4;
+}
+
+.discount::before,
+.prices::before {
+  animation: waveMove 7s linear infinite;
+}
+
+.discount::after,
+.prices::after {
+  animation: waveMove2 10s linear infinite;
+}
+
+.discount {
+  color: white;
+
   font-size: 13px;
   font-weight: bold;
+
+  padding: 6px 10px;
 }
 
 .prices {
-  background: rgba(0,0,0,0.25);
-  padding: 5px 8px;
+  padding: 6px 10px;
 }
 
 .prices small {
   display: block;
-  color: #7193a6;
+
+  color: #9ca3af;
+
   text-decoration: line-through;
+
   font-size: 11px;
+
+  position: relative;
+  z-index: 2;
 }
 
 .prices strong {
-  color: #beee11;
-  font-size: 15px;
-}
+  position: relative;
+  z-index: 2;
 
+  font-size: 15px;
+  font-weight: 600;
+
+  background: linear-gradient(
+    90deg,
+    #c0c0c0,
+    #ffffff,
+    #c0c0c0
+  );
+
+  background-size: 200% auto;
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  animation: silverShine 3s linear infinite;
+}
 
 
 .hover-details {
@@ -352,3 +538,74 @@
 
 
 
+@keyframes silverShine {
+  0% {
+    background-position: 0% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes waveMove {
+  0% {
+    transform: translate(-10%, -10%) rotate(0deg);
+  }
+
+  50% {
+    transform: translate(10%, 10%) rotate(180deg);
+  }
+
+  100% {
+    transform: translate(-10%, -10%) rotate(360deg);
+  }
+}
+
+@keyframes waveMove2 {
+  0% {
+    transform: translate(10%, 10%) rotate(0deg);
+  }
+
+  50% {
+    transform: translate(-10%, -10%) rotate(180deg);
+  }
+
+  100% {
+    transform: translate(10%, 10%) rotate(360deg);
+  }
+}
+
+@keyframes cardGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes blueOrb {
+  0% {
+    transform: rotate(0deg) translateX(60px);
+  }
+
+  100% {
+    transform: rotate(360deg) translateX(60px);
+  }
+}
+
+@keyframes purpleOrb {
+  0% {
+    transform: rotate(360deg) translateX(50px);
+  }
+
+  100% {
+    transform: rotate(0deg) translateX(50px);
+  }
+}

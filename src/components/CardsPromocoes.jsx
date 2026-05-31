@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+<link 
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" 
+  rel="stylesheet"
+/>
 import "../CSS/cardsPromocoes.css";
 
 export default function CardsPromocoes({ jogos }) {
@@ -127,10 +130,6 @@ export default function CardsPromocoes({ jogos }) {
                 {jogos[indexAtual]?.titulo}
               </h3>
 
-              <p>
-                {jogos[indexAtual]?.descricao}
-              </p>
-
               <div className="price-box">
 
                 <span className="discount">
@@ -176,10 +175,6 @@ export default function CardsPromocoes({ jogos }) {
               <h3>
                 {jogos[indexAtual + 1]?.titulo}
               </h3>
-
-              <p>
-                {jogos[indexAtual + 1]?.descricao}
-              </p>
 
               <div className="price-box">
 
@@ -408,7 +403,6 @@ export default function CardsPromocoes({ jogos }) {
 
         </div>
 
-        {/* BOTÃO DIREITA */}
         <button
           className="next-slide"
           onClick={proximoSlide}
@@ -418,7 +412,6 @@ export default function CardsPromocoes({ jogos }) {
 
       </div>
 
-      {/* BOLINHAS */}
       <div className="slider-dots">
 
         <span className="active-dot"></span>

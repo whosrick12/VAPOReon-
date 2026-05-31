@@ -1,3 +1,4 @@
+
 :root {
   --angle: 0deg;
 }
@@ -136,6 +137,7 @@
 .featured-left,
 .featured-right {
   position: relative;
+
   z-index: 2;
 }
 
@@ -156,9 +158,7 @@
 .featured-right {
   width: 30%;
 
-  height: 100%;
-
-  padding: 18px;
+  padding: 22px;
 
   background:
     linear-gradient(
@@ -170,9 +170,7 @@
   display: flex;
   flex-direction: column;
 
-  gap: 12px;
-
-  overflow: hidden;
+  gap: 18px;
 
   border-radius: 0 10px 10px 0;
 }
@@ -180,16 +178,8 @@
 .featured-right h1 {
   color: white;
 
-  font-size: 30px;
+  font-size: 38px;
   font-weight: 600;
-
-  line-height: 1.1;
-
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-
-  overflow: hidden;
 
   text-shadow:
     0 0 8px rgba(37, 99, 235, 0.45),
@@ -201,12 +191,12 @@
 
   grid-template-columns: 1fr 1fr;
 
-  gap: 8px;
+  gap: 10px;
 }
 
 .mini-images img {
   width: 100%;
-  height: 65px;
+  height: 80px;
 
   object-fit: cover;
 
@@ -226,14 +216,14 @@
 .featured-right h2 {
   color: white;
 
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 500;
 }
 
 .tag {
   width: fit-content;
 
-  padding: 5px 10px;
+  padding: 6px 12px;
 
   background:
     linear-gradient(
@@ -246,7 +236,7 @@
 
   border-radius: 4px;
 
-  font-size: 12px;
+  font-size: 14px;
 
   box-shadow:
     0 0 10px rgba(37, 99, 235, 0.35),
@@ -256,41 +246,31 @@
 .featured-right p {
   color: #9ca3af;
 
-  font-size: 15px;
+  font-size: 18px;
 
-  line-height: 1.4;
+  line-height: 1.5;
 }
+
 .price-area {
   display: flex;
   flex-direction: column;
-
   gap: 8px;
-
   margin-top: auto;
-
-  flex-shrink: 0;
 }
 
-/* =========================
-   PREÇO
-========================= */
-
+/* caixa menor e mais compacta */
 .price-box-main {
   position: relative;
-
   overflow: hidden;
 
-  padding: 10px 14px;
-
+  padding: 8px 12px;
   border-radius: 10px;
 
   background: rgba(30, 30, 30, 0.5);
-
   border: 1px solid rgba(255, 255, 255, 0.08);
 
   display: flex;
   flex-direction: column;
-
   gap: 2px;
 
   backdrop-filter: blur(10px);
@@ -298,28 +278,22 @@
   box-shadow:
     0 0 10px rgba(0, 0, 0, 0.35),
     inset 0 0 15px rgba(255, 255, 255, 0.02);
-
-  width: 100%;
-
-  box-sizing: border-box;
 }
 
+/* wave mais leve */
 .price-box-main::before,
 .price-box-main::after {
   content: "";
-
   position: absolute;
-
   inset: -70%;
 
-  background:
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(255,255,255,.06),
-      transparent 55%
-    );
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.06),
+    transparent 55%
+  );
 
-  opacity: .4;
+  opacity: 0.4;
 }
 
 .price-box-main::before {
@@ -330,121 +304,109 @@
   animation: waveMove2 10s linear infinite;
 }
 
+/* texto sempre na frente */
 .price-box-main span,
 .price-box-main strong {
   position: relative;
   z-index: 2;
 }
 
+/* label menor */
 .price-label {
   font-size: 11px;
-
   color: #9ca3af;
 }
 
+/* 💎 efeito prata → branco brilhando */
 .price-box-main strong {
   font-size: 18px;
   font-weight: 600;
 
-  background:
-    linear-gradient(
-      90deg,
-      #c0c0c0,
-      #ffffff,
-      #c0c0c0
-    );
+  background: linear-gradient(
+    90deg,
+    #c0c0c0,
+    #ffffff,
+    #c0c0c0
+  );
 
   background-size: 200% auto;
-
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 
   animation: silverShine 3s linear infinite;
 
   text-shadow:
-    0 0 6px rgba(192,192,192,.25),
-    0 0 12px rgba(255,255,255,.15);
+    0 0 6px rgba(192, 192, 192, 0.25),
+    0 0 12px rgba(255, 255, 255, 0.15);
 }
 
+/* shimmer prata */
 @keyframes silverShine {
-
   0% {
     background-position: 0% center;
   }
-
   100% {
     background-position: 200% center;
   }
-
 }
 
+/* waves suaves */
 @keyframes waveMove {
-
   0% {
     transform: translate(-10%, -10%) rotate(0deg);
   }
-
   50% {
     transform: translate(10%, 10%) rotate(180deg);
   }
-
   100% {
     transform: translate(-10%, -10%) rotate(360deg);
   }
-
 }
 
 @keyframes waveMove2 {
-
   0% {
     transform: translate(10%, 10%) rotate(0deg);
   }
-
   50% {
     transform: translate(-10%, -10%) rotate(180deg);
   }
-
   100% {
     transform: translate(10%, 10%) rotate(360deg);
   }
-
 }
 
-/* =========================
-   HOVER CARD
-========================= */
+.featured-card {
+  position: relative;
+  overflow: visible;
+}
 
+/* HOVER PRINCIPAL */
 .featured-hover {
   position: absolute;
-
   top: 0;
   left: 102%;
 
   width: 340px;
-
   background: #0f172a;
-
   color: #fff;
 
   padding: 14px;
-
   border-radius: 10px;
 
   opacity: 0;
   visibility: hidden;
+  transform: scale(0.95);
 
-  transform: scale(.95);
-
-  transition: .25s ease;
+  transition: 0.25s ease;
 
   z-index: 9999;
 
-  pointer-events: none;
+  pointer-events: none; /* 🔥 evita bug de hover preso */
 
-  box-shadow:
-    0 15px 35px rgba(0,0,0,.5);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.5);
 }
 
+/* ativa só no card */
 .featured-card:hover .featured-hover {
   opacity: 1;
   visibility: visible;
@@ -453,38 +415,29 @@
 
 .featured-hover h3 {
   font-size: 18px;
-
   margin-bottom: 6px;
 }
 
 .featured-genre {
   font-size: 13px;
-
   color: #94a3b8;
-
   margin-bottom: 10px;
 }
 
 .featured-images {
   display: flex;
-
   gap: 8px;
-
   margin-bottom: 10px;
 }
 
 .featured-images img {
   width: 50%;
-
   height: 90px;
-
   object-fit: cover;
-
   border-radius: 6px;
 }
 
 .featured-review {
   font-size: 13px;
-
   color: #4ade80;
 }

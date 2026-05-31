@@ -15,7 +15,7 @@ export default function CardPrincipal({
     jogo.imagens && jogo.imagens.length > 0
       ? jogo.imagens
       : [
-        { url: jogo.capaUrl },
+        { url: jogo.imagens?.[1]?.url },
         { url: jogo.capaUrl },
         { url: jogo.capaUrl },
         { url: jogo.capaUrl }
@@ -35,7 +35,6 @@ export default function CardPrincipal({
         ❮
       </button>
 
-      {/* CARD PRINCIPAL */}
       <div
         className="featured-card"
         onClick={abrirDetalhes}
@@ -94,8 +93,6 @@ export default function CardPrincipal({
 
         </div>
 
-        
-          {/*  HOVER STEAM STYLE */}
       
         <div className="featured-hover">
 
