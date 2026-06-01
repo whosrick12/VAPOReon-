@@ -169,3 +169,64 @@
 .discount-section {
   animation: fadeUp 0.7s ease;
 }
+
+.login-button {
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+}
+
+.logout-button {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: #ef4444;
+  cursor: pointer;
+  margin-left: 12px;
+  transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+  background: rgba(239, 68, 68, 0.3);
+  transform: scale(1.02);
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile div {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile h4 {
+  color: white;
+  font-size: 14px;
+  margin: 0;
+}
+
+.profile span {
+  color: #9ca3af;
+  font-size: 11px;
+}

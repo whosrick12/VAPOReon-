@@ -1,4 +1,4 @@
-.login-container {
+.register-container {
   width: 100%;
   min-height: 100vh;
   display: flex;
@@ -8,9 +8,9 @@
   padding: 20px;
 }
 
-.login-card {
+.register-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   background: rgba(17, 24, 39, 0.95);
   border-radius: 16px;
   padding: 40px 32px;
@@ -19,7 +19,7 @@
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
 }
 
-.login-card::before {
+.register-card::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -33,12 +33,12 @@
   pointer-events: none;
 }
 
-.login-header {
+.register-header {
   text-align: center;
   margin-bottom: 32px;
 }
 
-.login-header h1 {
+.register-header h1 {
   color: #fff;
   font-size: 28px;
   font-weight: 600;
@@ -50,15 +50,15 @@
   margin-bottom: 8px;
 }
 
-.login-header p {
+.register-header p {
   color: #9ca3af;
   font-size: 14px;
 }
 
-.login-form {
+.register-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .input-group {
@@ -103,7 +103,7 @@
   text-align: center;
 }
 
-.login-btn {
+.register-btn {
   padding: 12px;
   background: linear-gradient(90deg, #2563eb, #7c3aed);
   border: none;
@@ -116,27 +116,36 @@
   margin-top: 8px;
 }
 
-.login-btn:hover {
+.register-btn:hover {
   transform: scale(1.02);
   box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
 }
 
-.login-btn:disabled {
+.register-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-.login-footer {
+.register-footer {
   margin-top: 24px;
   text-align: center;
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.login-footer p {
+.register-footer p {
   color: #6b7280;
-  font-size: 12px;
+  font-size: 13px;
+}
+
+.register-footer a {
+  color: #4ade80;
+  text-decoration: none;
+}
+
+.register-footer a:hover {
+  text-decoration: underline;
 }
 
 @keyframes silverShine {
@@ -146,40 +155,4 @@
   100% {
     background-position: 200% center;
   }
-}
-.register-link {
-  margin-top: 16px;
-}
-
-.register-link a {
-  color: #4ade80;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.register-link a:hover {
-  text-decoration: underline;
-}
-
-.demo-accounts {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.demo-accounts p {
-  color: #6b7280;
-  font-size: 12px;
-  margin-bottom: 8px;
-}
-
-.demo-accounts span {
-  display: block;
-  font-size: 11px;
-  color: #4b5563;
-  font-family: monospace;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-bottom: 4px;
 }

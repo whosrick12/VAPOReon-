@@ -1,7 +1,6 @@
 import "../CSS/cardPrincipal.css";
 import { useNavigate } from "react-router-dom";
 
-
 export default function CardPrincipal({
   jogo,
   proximoJogo,
@@ -11,15 +10,8 @@ export default function CardPrincipal({
 
   if (!jogo) return null;
 
-  const imagens =
-    jogo.imagens && jogo.imagens.length > 0
-      ? jogo.imagens
-      : [
-        { url: jogo.imagens?.[1]?.url },
-        { url: jogo.capaUrl },
-        { url: jogo.capaUrl },
-        { url: jogo.capaUrl }
-      ];
+  // ✔ imagens reais (NUNCA inclui capaUrl aqui)
+  const imagens = jogo.imagens?.length >= 0 ? jogo.imagens : [];
 
   function abrirDetalhes() {
     navigate(`/jogo/${jogo.id}`);
@@ -41,36 +33,39 @@ export default function CardPrincipal({
         style={{ cursor: "pointer" }}
       >
 
+        {/* CAPA PRINCIPAL */}
         <div className="featured-left">
           <img
-            src={
-              jogo.capaUrl ||
-              "https://placehold.co/1200x600/111827/ffffff?text=Sem+Imagem"
-            }
+            src={jogo.capaUrl || "https://placehold.co/1200x600"}
             alt={jogo.titulo}
           />
         </div>
 
+        {/* INFO DIREITA */}
         <div className="featured-right">
 
           <h1>{jogo.titulo}</h1>
 
+          {/* MINI IMAGENS (só se existir de verdade) */}
           <div className="mini-images">
 
-            {imagens.slice(0, 4).map((img, index) => (
-              <img
-                key={index}
-                src={
-                  img.url ||
-                  jogo.capaUrl ||
-                  "https://placehold.co/300x200"
-                }
-                alt=""
-              />
-            ))}
+            {imagens.length > 0 ? (
+              imagens.slice(0, 4).map((img) => (
+                <img
+                  key={img.id || img.url}
+                  src={img.url}
+                  alt={img.legenda || jogo.titulo}
+                />
+              ))
+            ) : (
+              <p style={{ color: "#aaa", fontSize: "12px" }}>
+                Sem imagens adicionais
+              </p>
+            )}
 
           </div>
 
+          {/* PREÇO */}
           <div className="price-area">
 
             <span className="popular-tag">
@@ -93,7 +88,7 @@ export default function CardPrincipal({
 
         </div>
 
-      
+        {/* HOVER */}
         <div className="featured-hover">
 
           <h3>{jogo.titulo}</h3>
@@ -102,17 +97,16 @@ export default function CardPrincipal({
             {jogo.generos?.[0]?.nome || "Ação"}
           </p>
 
+          {/* preview no hover (também só imagens reais) */}
           <div className="featured-images">
 
-            <img
-              src={jogo.capaUrl || "https://placehold.co/300x200"}
-              alt=""
-            />
-
-            <img
-              src={jogo.capaUrl || "https://placehold.co/300x200"}
-              alt=""
-            />
+            {imagens.slice(0, 2).map((img) => (
+              <img
+                key={img.id || img.url}
+                src={img.url}
+                alt={img.legenda || jogo.titulo}
+              />
+            ))}
 
           </div>
 
