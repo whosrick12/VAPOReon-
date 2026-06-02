@@ -13,7 +13,11 @@ export default function Header() {
 
   return (
     <header className="header">
-      <div className="logo-container" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+      <div
+        className="logo-container"
+        onClick={() => navigate("/")}
+        style={{ cursor: "pointer" }}
+      >
         <img
           className="logo-box"
           src="https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/134.png"
@@ -27,33 +31,89 @@ export default function Header() {
       </div>
 
       <nav className="nav">
-        <a href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }}>Store</a>
-        <a href="/perfil" onClick={(e) => { e.preventDefault(); navigate("/perfil"); }}>Meu Perfil</a>
-        <a href="/library" onClick={(e) => e.preventDefault()}>Library</a>
-        <a href="/support" onClick={(e) => e.preventDefault()}>Support</a>
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("/");
+          }}
+        >
+          Store
+        </a>
+
+        <a
+          href="/perfil"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("/perfil");
+          }}
+        >
+          Meu Perfil
+        </a>
+
+        <a
+          href="/library"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("/library");
+          }}
+        >
+          Library
+        </a>
+
+        <a
+          href="/support"
+          onClick={(e) => {
+            e.preventDefault();
+          }}
+        >
+          Support
+        </a>
       </nav>
 
       <div className="search-box">
-        <input type="text" placeholder="Search games..." />
+        <input
+          type="text"
+          placeholder="Search games..."
+        />
       </div>
 
       <div className="profile">
         {usuario ? (
           <>
-            <img 
-              src={usuario.avatar || "https://i.pravatar.cc/40"} 
-              alt="profile" 
+            <img
+              src={
+                usuario.avatar ||
+                "https://i.pravatar.cc/40"
+              }
+              alt="profile"
               onClick={() => navigate("/perfil")}
               style={{ cursor: "pointer" }}
             />
-            <div onClick={() => navigate("/perfil")} style={{ cursor: "pointer" }}>
+
+            <div
+              onClick={() => navigate("/perfil")}
+              style={{ cursor: "pointer" }}
+            >
               <h4>{usuario.nome}</h4>
-              <span>Level {usuario.steamLevel || 1}</span>
+
+              <span>
+                Level {usuario.steamLevel || 1}
+              </span>
             </div>
-            <button onClick={handleLogout} className="logout-button">Sair</button>
+
+            <button
+              onClick={handleLogout}
+              className="logout-button"
+            >
+              Sair
+            </button>
           </>
         ) : (
-          <button onClick={() => navigate("/login")} className="login-button">
+          <button
+            onClick={() => navigate("/login")}
+            className="login-button"
+          >
             Entrar
           </button>
         )}

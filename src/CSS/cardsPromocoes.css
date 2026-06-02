@@ -438,6 +438,7 @@
   gap: 10px;
   overflow: visible;
   align-items: stretch;
+  position: relative;
 }
 
 .previous-slide,
@@ -470,11 +471,11 @@
   height: 360px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   background: linear-gradient(135deg, #050816, #0a1029, rgb(8, 12, 41), #0b0424, #0a1029);
-  background-size: 400% 400%;
-  animation: cardGradient 8s ease infinite;
-  border-radius: 8px;
+}
+.game-card:hover {
+  z-index: 10000;
 }
 
 .game-card::before {
@@ -663,7 +664,7 @@
   visibility: hidden;
   transform: scale(0.95);
   transition: 0.25s ease;
-  z-index: 9999;
+  z-index: 10001;
   pointer-events: none;
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
 }

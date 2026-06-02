@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-<link 
-  href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" 
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap"
   rel="stylesheet"
 />
 import "../CSS/cardsPromocoes.css";
@@ -142,9 +142,15 @@ export default function CardsPromocoes({ jogos }) {
                     R$ 39,99
                   </small>
 
-                  <strong>
-                    R$ {jogos[indexAtual]?.preco}
-                  </strong>
+                <strong>
+  {(
+    Number(jogos[indexAtual]?.preco || 0) *
+    (1 - 0.55)
+  ).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  })}
+</strong>
 
                 </div>
 
@@ -189,7 +195,10 @@ export default function CardsPromocoes({ jogos }) {
                   </small>
 
                   <strong>
-                    R$ {jogos[indexAtual + 1]?.preco}
+                    {Number(jogos[indexAtual + 1]?.preco || 0).toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
                   </strong>
 
                 </div>
@@ -314,9 +323,11 @@ export default function CardsPromocoes({ jogos }) {
                 <div className="mini-price">
 
                   <strong>-85%</strong>
-
                   <p>
-                    R$ {jogos[indexAtual + 2]?.preco}
+                    {Number(jogos[indexAtual + 2]?.preco || 0).toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
                   </p>
 
                 </div>
@@ -388,9 +399,11 @@ export default function CardsPromocoes({ jogos }) {
                 <div className="mini-price">
 
                   <strong>-40%</strong>
-
                   <p>
-                    R$ {jogos[indexAtual + 3]?.preco}
+                    {Number(jogos[indexAtual + 3]?.preco || 0).toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
                   </p>
 
                 </div>
