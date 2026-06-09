@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserGames } from "../services/fakeDatabase";
-import { getFavoritos, addFavorito, removeFavorito, isFavorito } from "../services/favoritosLocalService";
-import API from "../services/api";
+import { getFavoritos, addFavorito, removeFavorito } from "../services/favoritosLocalService";
 import "../CSS/Biblioteca.css";
 
 export default function Biblioteca() {
-  const { usuario, token } = useAuth();
+  const { usuario } = useAuth();
 
   const [jogos, setJogos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,40 +14,44 @@ export default function Biblioteca() {
   const [favoritos, setFavoritos] = useState([]);
   const [favoritando, setFavoritando] = useState(false);
 
+  function getConquistasPorJogo(titulo) {
+    if (titulo === "Sekiro" || titulo === "Sekiro: Shadows Die Twice") {
+      return 12;
+    }
+    if (titulo === "Ghost of Tsushima") {
+      return 8;
+    }
+    return 0;
+  }
+
+  function getTotalConquistas(titulo) {
+    if (titulo === "Sekiro" || titulo === "Sekiro: Shadows Die Twice") {
+      return 12;
+    }
+    if (titulo === "Ghost of Tsushima") {
+      return 8;
+    }
+    return 0;
+  }
+
   useEffect(() => {
-    async function carregarBiblioteca() {
+    function carregarBiblioteca() {
       if (!usuario) return;
 
-      try {
-        try {
-          const res = await fetch(`${API}/biblioteca/me`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+      console.log("Usando biblioteca local");
+      const jogosLocais = getUserGames(usuario.id);
+      
+      const jogosAtualizados = jogosLocais.map(jogo => ({
+        ...jogo,
+        conquistas: getConquistasPorJogo(jogo.titulo),
+        totalConquistas: getTotalConquistas(jogo.titulo)
+      }));
 
-          if (res.ok) {
-            const data = await res.json();
-            setJogos(data);
-            if (data.length > 0) {
-              setJogoSelecionado(data[0]);
-            }
-          } else {
-            throw new Error();
-          }
-        } catch {
-          console.log("Usando biblioteca local");
-          const jogosLocais = getUserGames(usuario.id);
-          setJogos(jogosLocais);
-          if (jogosLocais.length > 0) {
-            setJogoSelecionado(jogosLocais[0]);
-          }
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
+      setJogos(jogosAtualizados);
+      if (jogosAtualizados.length > 0) {
+        setJogoSelecionado(jogosAtualizados[0]);
       }
+      setLoading(false);
     }
 
     function carregarFavoritos() {
@@ -59,7 +62,7 @@ export default function Biblioteca() {
 
     carregarBiblioteca();
     carregarFavoritos();
-  }, [usuario, token]);
+  }, [usuario]);
 
   async function handleFavorito(jogo, e) {
     e.stopPropagation();
@@ -157,7 +160,7 @@ export default function Biblioteca() {
                 <span>Horas jogadas</span>
               </div>
               <div className="stat-box">
-                <h3>{jogoSelecionado.conquistas || 0}</h3>
+                <h3>{jogoSelecionado.conquistas || 0} / {jogoSelecionado.totalConquistas || getTotalConquistas(jogoSelecionado.titulo)}</h3>
                 <span>Conquistas</span>
               </div>
               <div className="stat-box">
