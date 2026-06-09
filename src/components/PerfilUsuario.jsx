@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { updateUser, getUserGames } from "../services/fakeDatabase";
+import { updateUser } from "../services/fakeDatabase";
+import { getFavoritos, getFavoritosCompletos } from "../services/favoritosLocalService";
 import API from "../services/api";
 
 export default function PerfilUsuario() {
   const { usuario, token, logout } = useAuth();
 
   const [editando, setEditando] = useState(false);
-  const [editandoHeader, setEditandoHeader] = useState(false);
   const [nome, setNome] = useState(usuario?.nome || "Carlos");
   const [username, setUsername] = useState(usuario?.username || "carlos_gamer");
   const [bio, setBio] = useState(usuario?.bio || "Caçador de conquistas 🎮");
@@ -18,10 +18,10 @@ export default function PerfilUsuario() {
   const [xp, setXp] = useState(usuario?.xp || 1000);
   const [biblioteca, setBiblioteca] = useState([]);
   const [conquistas, setConquistas] = useState([]);
+  const [favoritos, setFavoritos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ativos, setAtivos] = useState("biblioteca");
 
-  // DADOS ESTÁTICOS DAS CONQUISTAS (20 no total)
   const conquistasEstaticas = [
     { id: 1, nome: "Shura", descricao: "Veja o final Shura", tipo: "ouro", desbloqueadoEm: "2025-02-15", jogo: "Sekiro", xp: 50 },
     { id: 2, nome: "Purificação", descricao: "Veja o final Purificação", tipo: "ouro", desbloqueadoEm: "2025-02-20", jogo: "Sekiro", xp: 50 },
@@ -45,6 +45,33 @@ export default function PerfilUsuario() {
     { id: 20, nome: "Fantasma Lendário", descricao: "Posto máximo", tipo: "platina", desbloqueadoEm: "2025-03-20", jogo: "Ghost of Tsushima", xp: 100 }
   ];
 
+  // Função para carregar os favoritos
+  const carregarFavoritos = (bibliotecaData) => {
+    const userKey = usuario?.matricula || usuario?.id || usuario?.email;
+    if (!userKey) {
+      console.log("Usuário sem identificador para favoritos");
+      return;
+    }
+    
+    console.log("Carregando favoritos para:", userKey);
+    const favoritosSalvos = getFavoritos(userKey);
+    console.log("Favoritos salvos (raw):", favoritosSalvos);
+    
+    // Extrair os jogos dos favoritos
+    const jogosFavoritados = favoritosSalvos.map(fav => {
+      // Se já tem os dados do jogo salvos
+      if (fav.jogo) {
+        return fav.jogo;
+      }
+      // Se não, tenta encontrar na biblioteca
+      const jogoNaBiblioteca = bibliotecaData.find(j => j.id === (fav.jogoId || fav.id));
+      return jogoNaBiblioteca || null;
+    }).filter(jogo => jogo !== null);
+    
+    console.log("Jogos favoritados processados:", jogosFavoritados);
+    setFavoritos(jogosFavoritados);
+  };
+
   useEffect(() => {
     async function carregarDados() {
       if (!usuario?.id) return;
@@ -54,19 +81,20 @@ export default function PerfilUsuario() {
           headers: { Authorization: `Bearer ${token}` }
         });
 
+        let bibliotecaData = [];
+
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
-            // FORÇA os valores corretos na biblioteca
-            const bibliotecaAtualizada = data.map(jogo => {
+            bibliotecaData = data.map(jogo => {
               let conquistasCorretas = 0;
               let totalCorreto = 0;
 
               if (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice") {
-                conquistasCorretas = 12; // FORÇA 12 para Sekiro
+                conquistasCorretas = 12;
                 totalCorreto = 12;
               } else if (jogo.titulo === "Ghost of Tsushima") {
-                conquistasCorretas = 8; // FORÇA 8 para Ghost
+                conquistasCorretas = 8;
                 totalCorreto = 8;
               }
 
@@ -76,31 +104,11 @@ export default function PerfilUsuario() {
                 conquistasTotal: totalCorreto
               };
             });
-            setBiblioteca(bibliotecaAtualizada);
-          } else {
-            setBiblioteca([
-              {
-                id: 1,
-                titulo: "Sekiro: Shadows Die Twice",
-                horasJogadas: 73,
-                capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/814380/header.jpg",
-                ultimaVez: "2025-03-05",
-                conquistas: 12,
-                conquistasTotal: 12
-              },
-              {
-                id: 2,
-                titulo: "Ghost of Tsushima",
-                horasJogadas: 45,
-                capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2215430/header.jpg",
-                ultimaVez: "2025-03-20",
-                conquistas: 8,
-                conquistasTotal: 8
-              }
-            ]);
           }
-        } else {
-          setBiblioteca([
+        }
+
+        if (bibliotecaData.length === 0) {
+          bibliotecaData = [
             {
               id: 1,
               titulo: "Sekiro: Shadows Die Twice",
@@ -119,14 +127,16 @@ export default function PerfilUsuario() {
               conquistas: 8,
               conquistasTotal: 8
             }
-          ]);
+          ];
         }
 
+        setBiblioteca(bibliotecaData);
+        carregarFavoritos(bibliotecaData);
         setConquistas(conquistasEstaticas);
 
       } catch (error) {
         console.error(error);
-        setBiblioteca([
+        const fallbackData = [
           {
             id: 1,
             titulo: "Sekiro: Shadows Die Twice",
@@ -145,7 +155,9 @@ export default function PerfilUsuario() {
             conquistas: 8,
             conquistasTotal: 8
           }
-        ]);
+        ];
+        setBiblioteca(fallbackData);
+        carregarFavoritos(fallbackData);
         setConquistas(conquistasEstaticas);
       } finally {
         setLoading(false);
@@ -154,23 +166,33 @@ export default function PerfilUsuario() {
     carregarDados();
   }, [usuario, token]);
 
+  // Escuta mudanças nos favoritos do localStorage
+  useEffect(() => {
+    function handleFavoritosUpdate() {
+      console.log("Evento favoritosAtualizados recebido!");
+      if (biblioteca.length > 0) {
+        carregarFavoritos(biblioteca);
+      }
+    }
+
+    window.addEventListener('favoritosAtualizados', handleFavoritosUpdate);
+    
+    return () => {
+      window.removeEventListener('favoritosAtualizados', handleFavoritosUpdate);
+    };
+  }, [biblioteca]);
+
   const horasTotais = biblioteca.reduce((acc, jogo) => acc + (jogo.horasJogadas || 0), 0);
   const totalJogos = biblioteca.length;
   const totalConquistas = conquistas.length;
   const totalReviews = 2;
+  const totalFavoritos = favoritos.length;
 
-  // FORÇA os valores corretos para Sekiro (12) e Ghost (8)
-  const conquistasSekiro = 12; // Todas as 12 conquistas do Sekiro foram desbloqueadas
-  const conquistasGhost = 8;   // Todas as 8 conquistas do Ghost foram desbloqueadas
-
-  const jogoFavorito = biblioteca.length > 0 ? biblioteca[0] : null;
-
+  const conquistasSekiro = 12;
+  const conquistasGhost = 8;
+  const jogoFavorito = favoritos.length > 0 ? favoritos[0] : (biblioteca.length > 0 ? biblioteca[0] : null);
   const totalSekiro = 12;
   const totalGhost = 8;
-
-  const progressoSekiro = 100; // 12/12 = 100%
-  const progressoGhost = 100;   // 8/8 = 100%
-
   const metaProxima = 350;
   const proximoMarcoRestante = Math.max(0, metaProxima - totalConquistas);
   const progressoLenda = (totalConquistas / 500) * 100;
@@ -236,7 +258,7 @@ export default function PerfilUsuario() {
     tabBtn: { background: 'none', border: 'none', padding: '0.6rem 1.2rem', fontSize: '0.8rem', fontWeight: 600, color: '#8d99cf', cursor: 'pointer' },
     tabActive: { color: 'white', borderBottom: '2px solid #5f7eff' },
     bibliotecaGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' },
-    bibliotecaItem: { background: '#0d0f19', borderRadius: '12px', overflow: 'hidden', border: '1px solid #262c48' },
+    bibliotecaItem: { background: '#0d0f19', borderRadius: '12px', overflow: 'hidden', border: '1px solid #262c48', position: 'relative' },
     bibliotecaImg: { width: '100%', height: '120px', objectFit: 'cover' },
     bibliotecaInfo: { padding: '0.8rem' },
     bibliotecaH4: { fontSize: '0.85rem', color: 'white', marginBottom: '0.3rem' },
@@ -250,6 +272,80 @@ export default function PerfilUsuario() {
     btnLogout: { background: '#dc2626', color: 'white', padding: '0.5rem 1.2rem', borderRadius: '30px', fontWeight: 600, cursor: 'pointer', border: 'none', fontSize: '0.8rem' },
     textarea: { width: '100%', background: '#1a1f30', border: '1px solid #2a2f4b', color: 'white', padding: '0.5rem', borderRadius: '8px', marginTop: '0.3rem' },
     jogoConquistaRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' },
+    favoritoBadge: { 
+      position: 'absolute', 
+      top: '8px', 
+      right: '8px', 
+      background: 'rgba(255, 0, 0, 0.8)',
+      borderRadius: '50%',
+      width: '32px',
+      height: '32px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '1.2rem'
+    }
+  };
+
+  const renderizarJogos = (jogosParaRenderizar, tipo = 'biblioteca') => {
+    if (jogosParaRenderizar.length === 0) {
+      return (
+        <div style={styles.emptyState}>
+          {tipo === 'favoritos' ? (
+            <>
+              <p>🌟 Nenhum jogo favoritado ainda</p>
+              <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                Vá até a Biblioteca e clique em ❤️ Favoritar nos seus jogos preferidos!
+              </p>
+            </>
+          ) : (
+            <p>📚 Nenhum jogo na biblioteca</p>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.bibliotecaGrid}>
+        {jogosParaRenderizar.map(jogo => {
+          let conquistasJogo = 0;
+          let totalJogo = 0;
+
+          if (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice") {
+            conquistasJogo = 12;
+            totalJogo = 12;
+          } else if (jogo.titulo === "Ghost of Tsushima") {
+            conquistasJogo = 8;
+            totalJogo = 8;
+          } else {
+            conquistasJogo = jogo.conquistas || 0;
+            totalJogo = jogo.conquistasTotal || 0;
+          }
+
+          return (
+            <div key={jogo.id} style={styles.bibliotecaItem}>
+              <img 
+                style={styles.bibliotecaImg} 
+                src={jogo.capaUrl} 
+                alt={jogo.titulo} 
+                onError={(e) => { e.target.src = "https://placehold.co/400x200/1a1f2e/white?text=Sem+Imagem"; }} 
+              />
+              {tipo === 'favoritos' && (
+                <div style={styles.favoritoBadge}>❤️</div>
+              )}
+              <div style={styles.bibliotecaInfo}>
+                <h4 style={styles.bibliotecaH4}>{jogo.titulo}</h4>
+                <p style={styles.bibliotecaP}>{jogo.horasJogadas || 0} horas jogadas</p>
+                <p style={styles.bibliotecaP}>🏆 {conquistasJogo}/{totalJogo} conquistas</p>
+                <div style={{ ...styles.progressBar, marginTop: '0.5rem' }}>
+                  <div style={{ ...styles.progressFill, width: `100%` }}></div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -264,9 +360,23 @@ export default function PerfilUsuario() {
             </div>
             <div style={styles.heroInfo}>
               <div style={styles.name}>{nome}<span style={styles.username}>@{username}</span></div>
-              <div style={styles.userStatus}><div style={styles.statusOnline}></div><span>Online</span><span style={styles.badgeLevel}>🎮 Nível {steamLevel}</span><span style={styles.badgeXp}>⭐ {xp} XP</span></div>
-              <div style={styles.infoRow}><div style={styles.infoChip}>📍 {localizacao}</div><div style={styles.infoChip}>📅 Membro desde {formatarData(usuario.createdAt)}</div><div style={styles.infoChip}>🏆 {totalConquistas} Conquistas</div></div>
-              <div style={styles.badgesRow}><div style={styles.badgeItem}>🏆 Mestre das Conquistas</div><div style={{ ...styles.badgeItem, ...styles.badgeGold }}>💎 {totalConquistas} Conquistas</div><div style={styles.badgeItem}>⚡ Caçador de Platina</div></div>
+              <div style={styles.userStatus}>
+                <div style={styles.statusOnline}></div>
+                <span>Online</span>
+                <span style={styles.badgeLevel}>🎮 Nível {steamLevel}</span>
+                <span style={styles.badgeXp}>⭐ {xp} XP</span>
+              </div>
+              <div style={styles.infoRow}>
+                <div style={styles.infoChip}>📍 {localizacao}</div>
+                <div style={styles.infoChip}>📅 Membro desde {formatarData(usuario.createdAt)}</div>
+                <div style={styles.infoChip}>🏆 {totalConquistas} Conquistas</div>
+                <div style={styles.infoChip}>❤️ {totalFavoritos} Favoritos</div>
+              </div>
+              <div style={styles.badgesRow}>
+                <div style={styles.badgeItem}>🏆 Mestre das Conquistas</div>
+                <div style={{ ...styles.badgeItem, ...styles.badgeGold }}>💎 {totalConquistas} Conquistas</div>
+                <div style={styles.badgeItem}>⚡ Caçador de Platina</div>
+              </div>
             </div>
           </div>
         </div>
@@ -278,15 +388,24 @@ export default function PerfilUsuario() {
           <div style={styles.statCard}><span style={styles.statNumber}>{totalJogos}</span><span style={styles.statLabel}>Jogos</span></div>
           <div style={styles.statCard}><span style={styles.statNumber}>{totalReviews}</span><span style={styles.statLabel}>Reviews</span></div>
           <div style={styles.statCard}><span style={styles.statNumber}>{totalConquistas}</span><span style={styles.statLabel}>Conquistas</span></div>
+          <div style={styles.statCard}><span style={styles.statNumber}>{totalFavoritos}</span><span style={styles.statLabel}>Favoritos</span></div>
         </div>
 
         <div style={styles.grid2col}>
           <div style={styles.conquestPanel}>
-            <div style={styles.panelHeader}><h2 style={styles.panelHeaderH2}>🏅 Conquistas & Marcos Eternos <small style={{ fontSize: '0.6rem', color: '#7a86b8' }}>últimos desbloqueios</small></h2></div>
+            <div style={styles.panelHeader}>
+              <h2 style={styles.panelHeaderH2}>🏅 Conquistas & Marcos Eternos <small style={{ fontSize: '0.6rem', color: '#7a86b8' }}>últimos desbloqueios</small></h2>
+            </div>
             <div style={styles.conquestList}>
               {conquistas.slice(0, 10).map((c) => (
                 <div key={c.id} style={styles.conquestItem}>
-                  <div style={styles.conquestLeft}><div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div><div><h4 style={styles.conquestInfoH4}>{c.nome} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4><p style={styles.conquestInfoP}>{c.descricao}</p></div></div>
+                  <div style={styles.conquestLeft}>
+                    <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
+                    <div>
+                      <h4 style={styles.conquestInfoH4}>{c.nome} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
+                      <p style={styles.conquestInfoP}>{c.descricao}</p>
+                    </div>
+                  </div>
                   <div style={styles.conquestDate}>{formatarData(c.desbloqueadoEm)}</div>
                 </div>
               ))}
@@ -296,19 +415,30 @@ export default function PerfilUsuario() {
           <div>
             <div style={styles.progressCard}>
               <div style={styles.jogoConquistaRow}><strong>⚔️ Sekiro: Shadows Die Twice</strong><span style={{ color: '#e5e9ff' }}>{conquistasSekiro}/{totalSekiro} conquistas</span></div>
-              <div style={styles.progressBar}><div style={{ ...styles.progressFill, width: `100%` }}></div></div>
+              <div style={styles.progressBar}>
+                <div style={{ ...styles.progressFill, width: `100%` }}></div>
+              </div>
               <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#8d99cf' }}>🎯 ✅ COMPLETO 100%</div>
             </div>
 
             <div style={styles.progressCard}>
               <div style={styles.jogoConquistaRow}><strong>🍃 Ghost of Tsushima</strong><span style={{ color: '#e5e9ff' }}>{conquistasGhost}/{totalGhost} conquistas</span></div>
-              <div style={styles.progressBar}><div style={{ ...styles.progressFill, width: `100%` }}></div></div>
+              <div style={styles.progressBar}>
+                <div style={{ ...styles.progressFill, width: `100%` }}></div>
+              </div>
               <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#8d99cf' }}>🎯 ✅ COMPLETO 100%</div>
             </div>
 
             <div style={styles.globalMilestone}>
-              <div><strong>📌 Próximo marco</strong><div style={{ fontSize: '0.7rem' }}>350 conquistas (+{proximoMarcoRestante})</div></div>
-              <div style={{ textAlign: 'right' }}><div style={{ fontSize: '0.6rem' }}>Progresso para Lenda Prateada</div><div style={styles.percentageBig}>{progressoLenda.toFixed(1)}%</div><div style={{ fontSize: '0.6rem', color: '#8f9ad0' }}>meta: 500 conquistas</div></div>
+              <div>
+                <strong>📌 Próximo marco</strong>
+                <div style={{ fontSize: '0.7rem' }}>350 conquistas (+{proximoMarcoRestante})</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.6rem' }}>Progresso para Lenda Prateada</div>
+                <div style={styles.percentageBig}>{progressoLenda.toFixed(1)}%</div>
+                <div style={{ fontSize: '0.6rem', color: '#8f9ad0' }}>meta: 500 conquistas</div>
+              </div>
             </div>
 
             {jogoFavorito && (
@@ -316,67 +446,77 @@ export default function PerfilUsuario() {
                 <h3 style={{ marginBottom: '0.6rem', fontSize: '0.9rem', color: 'white' }}>⭐ Jogo Favorito</h3>
                 {jogoFavorito.capaUrl && <img src={jogoFavorito.capaUrl} alt={jogoFavorito.titulo} style={{ width: '100%', borderRadius: '12px', marginBottom: '0.5rem', maxHeight: '120px', objectFit: 'cover' }} />}
                 <h4 style={{ color: 'white', fontSize: '1rem' }}>{jogoFavorito.titulo}</h4>
-                <p style={{ color: '#8d99cf', fontSize: '0.7rem' }}>{jogoFavorito.horasJogadas} horas jogadas</p>
+                <p style={{ color: '#8d99cf', fontSize: '0.7rem' }}>{jogoFavorito.horasJogadas || 0} horas jogadas</p>
                 <div style={styles.conquistaProgresso}>
-                  <div style={styles.jogoConquistaRow}><span>🏆 Conquistas</span><span>{jogoFavorito.titulo === "Sekiro" || jogoFavorito.titulo === "Sekiro: Shadows Die Twice" ? "12/12" : "8/8"}</span></div>
-                  <div style={styles.progressBar}><div style={{ ...styles.progressFill, width: `100%` }}></div></div>
+                  <div style={styles.jogoConquistaRow}>
+                    <span>🏆 Conquistas</span>
+                    <span>{jogoFavorito.titulo === "Sekiro" || jogoFavorito.titulo === "Sekiro: Shadows Die Twice" ? "12/12" : "8/8"}</span>
+                  </div>
+                    <div style={{ ...styles.progressFill, width: `100%` }}></div>
+                  </div>
                 </div>
-              </div>
+           
             )}
           </div>
         </div>
 
         <div style={styles.progressCard}>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: 'white' }}>Sobre Mim</h3>
-          {editando ? <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} style={styles.textarea} /> : <p style={{ marginTop: '0.3rem', color: '#a0a8d0', fontSize: '0.8rem' }}>{bio || "Nenhuma biografia adicionada."}</p>}
+          {editando ? (
+            <textarea 
+              value={bio} 
+              onChange={(e) => setBio(e.target.value)} 
+              rows={3} 
+              style={styles.textarea} 
+            />
+          ) : (
+            <p style={{ marginTop: '0.3rem', color: '#a0a8d0', fontSize: '0.8rem' }}>
+              {bio || "Nenhuma biografia adicionada."}
+            </p>
+          )}
         </div>
 
         <div style={styles.tabs}>
-          <button style={{ ...styles.tabBtn, ...(ativos === "biblioteca" ? styles.tabActive : {}) }} onClick={() => setAtivos("biblioteca")}>📚 Biblioteca ({biblioteca.length})</button>
-          <button style={{ ...styles.tabBtn, ...(ativos === "conquistas" ? styles.tabActive : {}) }} onClick={() => setAtivos("conquistas")}>🏆 Conquistas ({conquistas.length})</button>
+          <button 
+            style={{ ...styles.tabBtn, ...(ativos === "biblioteca" ? styles.tabActive : {}) }} 
+            onClick={() => setAtivos("biblioteca")}
+          >
+            📚 Biblioteca ({biblioteca.length})
+          </button>
+          <button 
+            style={{ ...styles.tabBtn, ...(ativos === "favoritos" ? styles.tabActive : {}) }} 
+            onClick={() => setAtivos("favoritos")}
+          >
+            ❤️ Favoritos ({favoritos.length})
+          </button>
+          <button 
+            style={{ ...styles.tabBtn, ...(ativos === "conquistas" ? styles.tabActive : {}) }} 
+            onClick={() => setAtivos("conquistas")}
+          >
+            🏆 Conquistas ({conquistas.length})
+          </button>
         </div>
 
         <div>
-          {loading ? <div style={styles.emptyState}>Carregando dados...</div> : (
+          {loading ? (
+            <div style={styles.emptyState}>Carregando dados...</div>
+          ) : (
             <>
-              {ativos === "biblioteca" && (
-                <div style={styles.bibliotecaGrid}>
-                  {biblioteca.map(jogo => {
-                    let conquistasJogo = 0;
-                    let totalJogo = 0;
-
-                    if (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice") {
-                      conquistasJogo = 12;
-                      totalJogo = 12;
-                    } else {
-                      conquistasJogo = 8;
-                      totalJogo = 8;
-                    }
-
-                    return (
-                      <div key={jogo.id} style={styles.bibliotecaItem}>
-                        <img style={styles.bibliotecaImg} src={jogo.capaUrl} alt={jogo.titulo} onError={(e) => { e.target.src = "https://placehold.co/400x200/1a1f2e/white?text=Sem+Imagem"; }} />
-                        <div style={styles.bibliotecaInfo}>
-                          <h4 style={styles.bibliotecaH4}>{jogo.titulo}</h4>
-                          <p style={styles.bibliotecaP}>{jogo.horasJogadas} horas jogadas</p>
-                          <p style={styles.bibliotecaP}>🏆 {conquistasJogo}/{totalJogo} conquistas</p>
-                          <div style={{ ...styles.progressBar, marginTop: '0.5rem' }}><div style={{ ...styles.progressFill, width: `100%` }}></div></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {ativos === "biblioteca" && renderizarJogos(biblioteca, 'biblioteca')}
+              
+              {ativos === "favoritos" && renderizarJogos(favoritos, 'favoritos')}
 
               {ativos === "conquistas" && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   <div style={{ ...styles.progressCard, marginBottom: '0.5rem' }}>
                     <h3 style={{ color: '#e5e9ff', marginBottom: '0.5rem' }}>⚔️ Sekiro: Shadows Die Twice (12/12)</h3>
-
                     {conquistas.filter(c => c.jogo === "Sekiro").map(c => (
                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: '#0d0f19', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #262c48', marginBottom: '0.5rem' }}>
                         <div style={{ fontSize: '1.5rem' }}>{getMedalIcon(c.tipo)}</div>
-                        <div style={{ flex: 1 }}><h4 style={{ color: 'white', fontSize: '0.85rem' }}>{c.nome}</h4><p style={{ fontSize: '0.65rem', color: '#8d99cf' }}>{c.descricao}</p></div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ color: 'white', fontSize: '0.85rem' }}>{c.nome}</h4>
+                          <p style={{ fontSize: '0.65rem', color: '#8d99cf' }}>{c.descricao}</p>
+                        </div>
                         <small style={{ color: '#6e7cb3' }}>{formatarData(c.desbloqueadoEm)}</small>
                       </div>
                     ))}
@@ -387,7 +527,10 @@ export default function PerfilUsuario() {
                     {conquistas.filter(c => c.jogo === "Ghost of Tsushima").map(c => (
                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: '#0d0f19', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #262c48', marginBottom: '0.5rem' }}>
                         <div style={{ fontSize: '1.5rem' }}>{getMedalIcon(c.tipo)}</div>
-                        <div style={{ flex: 1 }}><h4 style={{ color: 'white', fontSize: '0.85rem' }}>{c.nome}</h4><p style={{ fontSize: '0.65rem', color: '#8d99cf' }}>{c.descricao}</p></div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ color: 'white', fontSize: '0.85rem' }}>{c.nome}</h4>
+                          <p style={{ fontSize: '0.65rem', color: '#8d99cf' }}>{c.descricao}</p>
+                        </div>
                         <small style={{ color: '#6e7cb3' }}>{formatarData(c.desbloqueadoEm)}</small>
                       </div>
                     ))}
@@ -401,15 +544,23 @@ export default function PerfilUsuario() {
         <div style={styles.actions}>
           {editando ? (
             <>
-              <button onClick={() => { updateUser(usuario.id, { nome, bio, avatar }); setEditando(false); }} style={styles.btnSalvar}>Salvar</button>
-              <button onClick={() => { setNome(usuario.nome); setBio(usuario.bio || ""); setEditando(false); }} style={styles.btnCancelar}>Cancelar</button>
+              <button onClick={() => { updateUser(usuario.id, { nome, bio, avatar }); setEditando(false); }} style={styles.btnSalvar}>
+                Salvar
+              </button>
+              <button onClick={() => { setNome(usuario.nome); setBio(usuario.bio || ""); setEditando(false); }} style={styles.btnCancelar}>
+                Cancelar
+              </button>
             </>
           ) : (
-            <button onClick={() => setEditando(true)} style={styles.btnEditar}>Editar Perfil</button>
+            <button onClick={() => setEditando(true)} style={styles.btnEditar}>
+              Editar Perfil
+            </button>
           )}
-          <button onClick={logout} style={styles.btnLogout}>Sair da Conta</button>
+          <button onClick={logout} style={styles.btnLogout}>
+            Sair da Conta
+          </button>
         </div>
       </div>
     </div>
   );
-}
+}                

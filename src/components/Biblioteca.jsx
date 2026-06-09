@@ -55,8 +55,14 @@ export default function Biblioteca() {
     }
 
     function carregarFavoritos() {
-      if (!usuario?.matricula) return;
-      const favs = getFavoritos(usuario.matricula);
+      const userKey = usuario?.matricula || usuario?.id || usuario?.email;
+      if (!userKey) {
+        console.log("Usuário não tem identificador para favoritos");
+        return;
+      }
+      console.log("Carregando favoritos para:", userKey);
+      const favs = getFavoritos(userKey);
+      console.log("Favoritos carregados:", favs);
       setFavoritos(favs.map(f => f.jogoId || f.id));
     }
 
@@ -66,19 +72,46 @@ export default function Biblioteca() {
 
   async function handleFavorito(jogo, e) {
     e.stopPropagation();
-    if (!usuario?.matricula) return;
+    
+    const userKey = usuario?.matricula || usuario?.id || usuario?.email;
+    
+    console.log("=== DEBUG FAVORITO ===");
+    console.log("Usuário completo:", usuario);
+    console.log("UserKey (identificador):", userKey);
+    console.log("Jogo:", jogo);
+    console.log("Jogo ID:", jogo.id);
+    console.log("Favoritos atuais (IDs):", favoritos);
+    
+    if (!userKey) {
+      console.error("Usuário não tem identificador (matricula/id/email)!");
+      alert("Erro: Usuário não identificado. Faça login novamente.");
+      return;
+    }
     
     setFavoritando(true);
     try {
       if (favoritos.includes(jogo.id)) {
-        removeFavorito(usuario.matricula, jogo.id);
+        console.log("Removendo dos favoritos...");
+        removeFavorito(userKey, jogo.id);
         setFavoritos(favoritos.filter(id => id !== jogo.id));
+        console.log("Removido com sucesso!");
       } else {
-        addFavorito(usuario.matricula, jogo.id, jogo);
+        console.log("Adicionando aos favoritos...");
+        addFavorito(userKey, jogo.id, jogo);
         setFavoritos([...favoritos, jogo.id]);
+        console.log("Adicionado com sucesso!");
       }
+      
+      // Verificar se salvou no localStorage
+      const saved = localStorage.getItem("favoritos_db");
+      console.log("LocalStorage após operação:", saved);
+      
+      // DISPARAR EVENTO PARA ATUALIZAR A PÁGINA DE PERFIL
+      window.dispatchEvent(new Event('favoritosAtualizados'));
+      
     } catch (error) {
-      console.error("Erro ao favoritar:", error);
+      console.error("Erro detalhado ao favoritar:", error);
+      alert("Erro ao favoritar: " + error.message);
     } finally {
       setFavoritando(false);
     }
