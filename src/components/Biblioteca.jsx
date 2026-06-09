@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserGames } from "../services/fakeDatabase";
+import { getFavoritos, addFavorito, removeFavorito, isFavorito } from "../services/favoritosLocalService";
 import API from "../services/api";
 import "../CSS/Biblioteca.css";
 
@@ -9,9 +10,10 @@ export default function Biblioteca() {
 
   const [jogos, setJogos] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [busca, setBusca] = useState("");
   const [jogoSelecionado, setJogoSelecionado] = useState(null);
+  const [favoritos, setFavoritos] = useState([]);
+  const [favoritando, setFavoritando] = useState(false);
 
   useEffect(() => {
     async function carregarBiblioteca() {
@@ -27,25 +29,20 @@ export default function Biblioteca() {
 
           if (res.ok) {
             const data = await res.json();
-
             setJogos(data);
-
             if (data.length > 0) {
               setJogoSelecionado(data[0]);
             }
-
-            return;
+          } else {
+            throw new Error();
           }
         } catch {
           console.log("Usando biblioteca local");
-        }
-
-        const jogosLocais = getUserGames(usuario.id);
-
-        setJogos(jogosLocais);
-
-        if (jogosLocais.length > 0) {
-          setJogoSelecionado(jogosLocais[0]);
+          const jogosLocais = getUserGames(usuario.id);
+          setJogos(jogosLocais);
+          if (jogosLocais.length > 0) {
+            setJogoSelecionado(jogosLocais[0]);
+          }
         }
       } catch (error) {
         console.error(error);
@@ -54,8 +51,35 @@ export default function Biblioteca() {
       }
     }
 
+    function carregarFavoritos() {
+      if (!usuario?.matricula) return;
+      const favs = getFavoritos(usuario.matricula);
+      setFavoritos(favs.map(f => f.jogoId || f.id));
+    }
+
     carregarBiblioteca();
+    carregarFavoritos();
   }, [usuario, token]);
+
+  async function handleFavorito(jogo, e) {
+    e.stopPropagation();
+    if (!usuario?.matricula) return;
+    
+    setFavoritando(true);
+    try {
+      if (favoritos.includes(jogo.id)) {
+        removeFavorito(usuario.matricula, jogo.id);
+        setFavoritos(favoritos.filter(id => id !== jogo.id));
+      } else {
+        addFavorito(usuario.matricula, jogo.id, jogo);
+        setFavoritos([...favoritos, jogo.id]);
+      }
+    } catch (error) {
+      console.error("Erro ao favoritar:", error);
+    } finally {
+      setFavoritando(false);
+    }
+  }
 
   const jogosFiltrados = jogos.filter((jogo) =>
     jogo.titulo?.toLowerCase().includes(busca.toLowerCase())
@@ -71,15 +95,11 @@ export default function Biblioteca() {
 
   return (
     <div className="library-page">
-      {/* SIDEBAR */}
-
       <div className="library-sidebar">
         <h2>Biblioteca</h2>
-
         <div className="library-total">
           {jogos.length} jogos
         </div>
-
         <input
           type="text"
           placeholder="Pesquisar..."
@@ -87,38 +107,24 @@ export default function Biblioteca() {
           onChange={(e) => setBusca(e.target.value)}
           className="library-search"
         />
-
         <div className="library-list">
           {jogosFiltrados.map((jogo) => (
             <div
               key={jogo.id}
               className={`library-game ${
-                jogoSelecionado?.id === jogo.id
-                  ? "active"
-                  : ""
+                jogoSelecionado?.id === jogo.id ? "active" : ""
               }`}
-              onClick={() =>
-                setJogoSelecionado(jogo)
-              }
+              onClick={() => setJogoSelecionado(jogo)}
             >
-              <img
-                src={jogo.capaUrl}
-                alt={jogo.titulo}
-              />
-
+              <img src={jogo.capaUrl} alt={jogo.titulo} />
               <div>
                 <h4>{jogo.titulo}</h4>
-
-                <span>
-                  {jogo.horasJogadas || 0} horas
-                </span>
+                <span>{jogo.horasJogadas || 0} horas</span>
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      {/* CONTEÚDO PRINCIPAL */}
 
       <div className="library-content">
         {jogoSelecionado ? (
@@ -130,79 +136,53 @@ export default function Biblioteca() {
               }}
             >
               <div className="library-overlay">
-                <h1>
-                  {jogoSelecionado.titulo}
-                </h1>
-
-                <p>
-                  {jogoSelecionado.descricao ||
-                    "Sem descrição disponível."}
-                </p>
-
-                <button className="btn-play">
-                  ▶ Jogar
-                </button>
+                <h1>{jogoSelecionado.titulo}</h1>
+                <p>{jogoSelecionado.descricao || "Sem descrição disponível."}</p>
+                <div className="botoes-container">
+                  <button className="btn-play">▶ Jogar</button>
+                  <button 
+                    className={`btn-favorito ${favoritos.includes(jogoSelecionado.id) ? "favorito-ativo" : ""}`}
+                    onClick={(e) => handleFavorito(jogoSelecionado, e)}
+                    disabled={favoritando}
+                  >
+                    {favoritos.includes(jogoSelecionado.id) ? "❤️ Favoritado" : "🤍 Favoritar"}
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="library-stats">
               <div className="stat-box">
-                <h3>
-                  {jogoSelecionado.horasJogadas || 0}
-                </h3>
-
+                <h3>{jogoSelecionado.horasJogadas || 0}</h3>
                 <span>Horas jogadas</span>
               </div>
-
               <div className="stat-box">
-                <h3>
-                  {jogoSelecionado.conquistas || 0}
-                </h3>
-
+                <h3>{jogoSelecionado.conquistas || 0}</h3>
                 <span>Conquistas</span>
               </div>
-
               <div className="stat-box">
-                <h3>
-                  {jogoSelecionado.ultimaVez
-                    ? new Date(
-                        jogoSelecionado.ultimaVez
-                      ).toLocaleDateString("pt-BR")
+                <h3>{jogoSelecionado.ultimaVez
+                    ? new Date(jogoSelecionado.ultimaVez).toLocaleDateString("pt-BR")
                     : "Nunca"}
                 </h3>
-
                 <span>Última sessão</span>
               </div>
             </div>
 
             <div className="library-about">
               <h2>Sobre este jogo</h2>
-
-              <p>
-                {jogoSelecionado.sinopse ||
-                  jogoSelecionado.descricao}
-              </p>
+              <p>{jogoSelecionado.sinopse || jogoSelecionado.descricao}</p>
             </div>
 
             <div className="library-gallery">
               <h2>Capturas de tela</h2>
-
               <div className="gallery-grid">
                 {jogoSelecionado.imagens?.length > 0 ? (
-                  jogoSelecionado.imagens.map(
-                    (img, index) => (
-                      <img
-                        key={index}
-                        src={img.url}
-                        alt=""
-                      />
-                    )
-                  )
+                  jogoSelecionado.imagens.map((img, index) => (
+                    <img key={index} src={img.url} alt="" />
+                  ))
                 ) : (
-                  <img
-                    src={jogoSelecionado.capaUrl}
-                    alt=""
-                  />
+                  <img src={jogoSelecionado.capaUrl} alt="" />
                 )}
               </div>
             </div>

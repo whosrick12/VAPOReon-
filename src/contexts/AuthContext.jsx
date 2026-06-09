@@ -1,6 +1,6 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { initDatabase, loginUser } from "../services/fakeDatabase";
+import API from "../services/api";
 
 const AuthContext = createContext();
 
@@ -11,8 +11,6 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    initDatabase();
-    
     const tokenSalvo = localStorage.getItem("token");
     const usuarioSalvo = localStorage.getItem("usuario");
     
@@ -23,22 +21,51 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  async function login(email, senha) {
-    console.log("AuthContext.login chamado com:", email, senha);
+  async function login(matricula, senha) {
+    console.log("=== LOGIN DEBUG ===");
+    console.log("Enviando para API:", `${API}/auth/login`);
+    console.log("Dados:", { matricula, senha });
     
     try {
-      const result = loginUser(email, senha);
-      console.log("Resultado do loginUser:", result);
+      const response = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ matricula, senha }),
+      });
+
+      console.log("Status da resposta:", response.status);
       
-      setToken(result.token);
-      setUsuario(result.usuario);
-      localStorage.setItem("token", result.token);
-      localStorage.setItem("usuario", JSON.stringify(result.usuario));
-      
-      console.log("Login realizado com sucesso!");
-      return result.usuario;
+      const data = await response.json();
+      console.log("Resposta da API:", data);
+
+      if (!response.ok) {
+        throw new Error(data.message || "Matrícula ou senha inválidos");
+      }
+
+      const usuarioData = {
+        id: data.usuario?.id || data.id,
+        matricula: data.usuario?.matricula || data.matricula,
+        nome: data.usuario?.nome || data.nome,
+        email: data.usuario?.email || data.email,
+        avatar: `https://ui-avatars.com/api/?background=2563eb&color=fff&name=${encodeURIComponent(data.usuario?.nome || data.nome)}`,
+        level: data.usuario?.level || 1,
+      };
+
+      const tokenRecebido = data.token || data.accessToken;
+
+      console.log("Usuário processado:", usuarioData);
+      console.log("Token:", tokenRecebido);
+
+      setToken(tokenRecebido);
+      setUsuario(usuarioData);
+      localStorage.setItem("token", tokenRecebido);
+      localStorage.setItem("usuario", JSON.stringify(usuarioData));
+
+      return usuarioData;
     } catch (error) {
-      console.error("Erro no AuthContext.login:", error);
+      console.error("Erro no login:", error);
       throw error;
     }
   }

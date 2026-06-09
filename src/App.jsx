@@ -10,7 +10,6 @@ import DetalheJogo from "./components/DetalhesJogo";
 import PopupPromocao from "./components/PopupPromocao";
 import ExploreCategorias from "./components/ExploreCategorias";
 import Login from "./components/Login";
-import Register from "./components/Register";
 import PerfilUsuario from "./components/PerfilUsuario";
 import API from "./services/api";
 import Biblioteca from "./components/Biblioteca";
@@ -80,7 +79,7 @@ function AppContent() {
   if (loading) {
     return (
       <div>
-        <Header />
+        <Header jogos={jogos} />
 
         <div
           style={{
@@ -97,7 +96,7 @@ function AppContent() {
 
   return (
     <div>
-      <Header />
+      <Header jogos={jogos} />
 
       {podeMostrarPopup && jogos.length > 0 && (
         <PopupPromocao jogos={jogos} />
@@ -107,11 +106,6 @@ function AppContent() {
         <Route
           path="/login"
           element={<Login />}
-        />
-
-        <Route
-          path="/register"
-          element={<Register />}
         />
 
         <Route
