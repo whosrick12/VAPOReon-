@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { updateUser } from "../services/fakeDatabase";
-import { getFavoritos, getFavoritosCompletos } from "../services/favoritosLocalService";
+import { getFavoritos } from "../services/favoritosLocalService";
 import API from "../services/api";
 
 export default function PerfilUsuario() {
@@ -22,53 +22,17 @@ export default function PerfilUsuario() {
   const [loading, setLoading] = useState(true);
   const [ativos, setAtivos] = useState("biblioteca");
 
-  const conquistasEstaticas = [
-    { id: 1, nome: "Shura", descricao: "Veja o final Shura", tipo: "ouro", desbloqueadoEm: "2025-02-15", jogo: "Sekiro", xp: 50 },
-    { id: 2, nome: "Purificação", descricao: "Veja o final Purificação", tipo: "ouro", desbloqueadoEm: "2025-02-20", jogo: "Sekiro", xp: 50 },
-    { id: 3, nome: "Retorno", descricao: "Veja o final Retorno", tipo: "ouro", desbloqueadoEm: "2025-02-25", jogo: "Sekiro", xp: 50 },
-    { id: 4, nome: "Imortalidade Quebrada", descricao: "Derrote todos os chefes", tipo: "platina", desbloqueadoEm: "2025-03-01", jogo: "Sekiro", xp: 100 },
-    { id: 5, nome: "Lobo Sagaz", descricao: "Domine todas as técnicas de shinobi", tipo: "prata", desbloqueadoEm: "2025-01-10", jogo: "Sekiro", xp: 30 },
-    { id: 6, nome: "Mãos de Ferro", descricao: "Aprimore todos os braços shinobi", tipo: "prata", desbloqueadoEm: "2025-01-15", jogo: "Sekiro", xp: 30 },
-    { id: 7, nome: "Altar da Restauração", descricao: "Colete 10 itens de cura", tipo: "bronze", desbloqueadoEm: "2024-12-01", jogo: "Sekiro", xp: 10 },
-    { id: 8, nome: "Memórias de um Shinobi", descricao: "Derrote 5 chefes principais", tipo: "prata", desbloqueadoEm: "2025-01-20", jogo: "Sekiro", xp: 30 },
-    { id: 9, nome: "Coração de Aço", descricao: "Complete o jogo sem morrer", tipo: "ouro", desbloqueadoEm: "2025-03-05", jogo: "Sekiro", xp: 50 },
-    { id: 10, nome: "Tesouros do Templo", descricao: "Encontre todos os tesouros escondidos", tipo: "prata", desbloqueadoEm: "2025-02-10", jogo: "Sekiro", xp: 30 },
-    { id: 11, nome: "Espada Imortal", descricao: "Desbloqueie a espada lendária", tipo: "ouro", desbloqueadoEm: "2025-02-28", jogo: "Sekiro", xp: 50 },
-    { id: 12, nome: "Caminho do Guerreiro", descricao: "Complete todos os desafios dos templos", tipo: "prata", desbloqueadoEm: "2025-03-03", jogo: "Sekiro", xp: 30 },
-    { id: 13, nome: "Fantasma da Ilha", descricao: "Complete o capítulo", tipo: "prata", desbloqueadoEm: "2025-03-10", jogo: "Ghost of Tsushima", xp: 30 },
-    { id: 14, nome: "Mestre Lendário", descricao: "Aprenda todas as técnicas", tipo: "ouro", desbloqueadoEm: "2025-03-15", jogo: "Ghost of Tsushima", xp: 50 },
-    { id: 15, nome: "Colecionador de Relíquias", descricao: "Encontre 20 relíquias", tipo: "prata", desbloqueadoEm: "2025-03-12", jogo: "Ghost of Tsushima", xp: 30 },
-    { id: 16, nome: "Vingança Perfeita", descricao: "Derrote 10 inimigos sem ser detectado", tipo: "bronze", desbloqueadoEm: "2025-02-05", jogo: "Ghost of Tsushima", xp: 10 },
-    { id: 17, nome: "Arte da Espada", descricao: "Domine todas as posturas", tipo: "prata", desbloqueadoEm: "2025-03-08", jogo: "Ghost of Tsushima", xp: 30 },
-    { id: 18, nome: "Alma de Samurai", descricao: "Complete 50 missões", tipo: "ouro", desbloqueadoEm: "2025-03-18", jogo: "Ghost of Tsushima", xp: 50 },
-    { id: 19, nome: "Pintura Viva", descricao: "Complete todos os haikus", tipo: "bronze", desbloqueadoEm: "2025-02-28", jogo: "Ghost of Tsushima", xp: 10 },
-    { id: 20, nome: "Fantasma Lendário", descricao: "Posto máximo", tipo: "platina", desbloqueadoEm: "2025-03-20", jogo: "Ghost of Tsushima", xp: 100 }
-  ];
-
-  // Função para carregar os favoritos
   const carregarFavoritos = (bibliotecaData) => {
     const userKey = usuario?.matricula || usuario?.id || usuario?.email;
-    if (!userKey) {
-      console.log("Usuário sem identificador para favoritos");
-      return;
-    }
+    if (!userKey) return;
     
-    console.log("Carregando favoritos para:", userKey);
     const favoritosSalvos = getFavoritos(userKey);
-    console.log("Favoritos salvos (raw):", favoritosSalvos);
-    
-    // Extrair os jogos dos favoritos
     const jogosFavoritados = favoritosSalvos.map(fav => {
-      // Se já tem os dados do jogo salvos
-      if (fav.jogo) {
-        return fav.jogo;
-      }
-      // Se não, tenta encontrar na biblioteca
+      if (fav.jogo) return fav.jogo;
       const jogoNaBiblioteca = bibliotecaData.find(j => j.id === (fav.jogoId || fav.id));
       return jogoNaBiblioteca || null;
     }).filter(jogo => jogo !== null);
     
-    console.log("Jogos favoritados processados:", jogosFavoritados);
     setFavoritos(jogosFavoritados);
   };
 
@@ -86,24 +50,11 @@ export default function PerfilUsuario() {
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
-            bibliotecaData = data.map(jogo => {
-              let conquistasCorretas = 0;
-              let totalCorreto = 0;
-
-              if (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice") {
-                conquistasCorretas = 12;
-                totalCorreto = 12;
-              } else if (jogo.titulo === "Ghost of Tsushima") {
-                conquistasCorretas = 8;
-                totalCorreto = 8;
-              }
-
-              return {
-                ...jogo,
-                conquistas: conquistasCorretas,
-                conquistasTotal: totalCorreto
-              };
-            });
+            bibliotecaData = data.map(jogo => ({
+              ...jogo,
+              conquistas: 0,
+              conquistasTotal: 0
+            }));
           }
         }
 
@@ -115,7 +66,7 @@ export default function PerfilUsuario() {
               horasJogadas: 73,
               capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/814380/header.jpg",
               ultimaVez: "2025-03-05",
-              conquistas: 12,
+              conquistas: 0,
               conquistasTotal: 12
             },
             {
@@ -124,7 +75,7 @@ export default function PerfilUsuario() {
               horasJogadas: 45,
               capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2215430/header.jpg",
               ultimaVez: "2025-03-20",
-              conquistas: 8,
+              conquistas: 0,
               conquistasTotal: 8
             }
           ];
@@ -132,7 +83,7 @@ export default function PerfilUsuario() {
 
         setBiblioteca(bibliotecaData);
         carregarFavoritos(bibliotecaData);
-        setConquistas(conquistasEstaticas);
+        setConquistas([]);
 
       } catch (error) {
         console.error(error);
@@ -143,7 +94,7 @@ export default function PerfilUsuario() {
             horasJogadas: 73,
             capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/814380/header.jpg",
             ultimaVez: "2025-03-05",
-            conquistas: 12,
+            conquistas: 0,
             conquistasTotal: 12
           },
           {
@@ -152,13 +103,13 @@ export default function PerfilUsuario() {
             horasJogadas: 45,
             capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2215430/header.jpg",
             ultimaVez: "2025-03-20",
-            conquistas: 8,
+            conquistas: 0,
             conquistasTotal: 8
           }
         ];
         setBiblioteca(fallbackData);
         carregarFavoritos(fallbackData);
-        setConquistas(conquistasEstaticas);
+        setConquistas([]);
       } finally {
         setLoading(false);
       }
@@ -166,17 +117,14 @@ export default function PerfilUsuario() {
     carregarDados();
   }, [usuario, token]);
 
-  // Escuta mudanças nos favoritos do localStorage
   useEffect(() => {
     function handleFavoritosUpdate() {
-      console.log("Evento favoritosAtualizados recebido!");
       if (biblioteca.length > 0) {
         carregarFavoritos(biblioteca);
       }
     }
 
     window.addEventListener('favoritosAtualizados', handleFavoritosUpdate);
-    
     return () => {
       window.removeEventListener('favoritosAtualizados', handleFavoritosUpdate);
     };
@@ -188,11 +136,13 @@ export default function PerfilUsuario() {
   const totalReviews = 2;
   const totalFavoritos = favoritos.length;
 
-  const conquistasSekiro = 12;
-  const conquistasGhost = 8;
-  const jogoFavorito = favoritos.length > 0 ? favoritos[0] : (biblioteca.length > 0 ? biblioteca[0] : null);
+  const conquistasSekiro = biblioteca.find(j => j.titulo === "Sekiro: Shadows Die Twice")?.conquistas || 0;
+  const conquistasGhost = biblioteca.find(j => j.titulo === "Ghost of Tsushima")?.conquistas || 0;
   const totalSekiro = 12;
   const totalGhost = 8;
+  
+  const jogoFavorito = favoritos.length > 0 ? favoritos[0] : (biblioteca.length > 0 ? biblioteca[0] : null);
+  
   const metaProxima = 350;
   const proximoMarcoRestante = Math.max(0, metaProxima - totalConquistas);
   const progressoLenda = (totalConquistas / 500) * 100;
@@ -312,10 +262,10 @@ export default function PerfilUsuario() {
           let totalJogo = 0;
 
           if (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice") {
-            conquistasJogo = 12;
+            conquistasJogo = 0;
             totalJogo = 12;
           } else if (jogo.titulo === "Ghost of Tsushima") {
-            conquistasJogo = 8;
+            conquistasJogo = 0;
             totalJogo = 8;
           } else {
             conquistasJogo = jogo.conquistas || 0;
@@ -338,7 +288,7 @@ export default function PerfilUsuario() {
                 <p style={styles.bibliotecaP}>{jogo.horasJogadas || 0} horas jogadas</p>
                 <p style={styles.bibliotecaP}>🏆 {conquistasJogo}/{totalJogo} conquistas</p>
                 <div style={{ ...styles.progressBar, marginTop: '0.5rem' }}>
-                  <div style={{ ...styles.progressFill, width: `100%` }}></div>
+                  <div style={{ ...styles.progressFill, width: totalJogo > 0 ? (conquistasJogo / totalJogo) * 100 : 0 }}></div>
                 </div>
               </div>
             </div>
@@ -397,18 +347,24 @@ export default function PerfilUsuario() {
               <h2 style={styles.panelHeaderH2}>🏅 Conquistas & Marcos Eternos <small style={{ fontSize: '0.6rem', color: '#7a86b8' }}>últimos desbloqueios</small></h2>
             </div>
             <div style={styles.conquestList}>
-              {conquistas.slice(0, 10).map((c) => (
-                <div key={c.id} style={styles.conquestItem}>
-                  <div style={styles.conquestLeft}>
-                    <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
-                    <div>
-                      <h4 style={styles.conquestInfoH4}>{c.nome} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
-                      <p style={styles.conquestInfoP}>{c.descricao}</p>
-                    </div>
-                  </div>
-                  <div style={styles.conquestDate}>{formatarData(c.desbloqueadoEm)}</div>
+              {conquistas.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#6e7cb3' }}>
+                  🎮 AINDA NÃO HÁ NENHUMA CONQUISTA
                 </div>
-              ))}
+              ) : (
+                conquistas.slice(0, 10).map((c) => (
+                  <div key={c.id} style={styles.conquestItem}>
+                    <div style={styles.conquestLeft}>
+                      <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
+                      <div>
+                        <h4 style={styles.conquestInfoH4}>{c.nome} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
+                        <p style={styles.conquestInfoP}>{c.descricao}</p>
+                      </div>
+                    </div>
+                    <div style={styles.conquestDate}>{formatarData(c.desbloqueadoEm)}</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -416,17 +372,17 @@ export default function PerfilUsuario() {
             <div style={styles.progressCard}>
               <div style={styles.jogoConquistaRow}><strong>⚔️ Sekiro: Shadows Die Twice</strong><span style={{ color: '#e5e9ff' }}>{conquistasSekiro}/{totalSekiro} conquistas</span></div>
               <div style={styles.progressBar}>
-                <div style={{ ...styles.progressFill, width: `100%` }}></div>
+                <div style={{ ...styles.progressFill, width: totalSekiro > 0 ? (conquistasSekiro / totalSekiro) * 100 : 0 }}></div>
               </div>
-              <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#8d99cf' }}>🎯 ✅ COMPLETO 100%</div>
+              <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#8d99cf' }}>🎯 {conquistasSekiro === totalSekiro ? '✅ COMPLETO 100%' : `${conquistasSekiro}/${totalSekiro} conquistas`}</div>
             </div>
 
             <div style={styles.progressCard}>
               <div style={styles.jogoConquistaRow}><strong>🍃 Ghost of Tsushima</strong><span style={{ color: '#e5e9ff' }}>{conquistasGhost}/{totalGhost} conquistas</span></div>
               <div style={styles.progressBar}>
-                <div style={{ ...styles.progressFill, width: `100%` }}></div>
+                <div style={{ ...styles.progressFill, width: totalGhost > 0 ? (conquistasGhost / totalGhost) * 100 : 0 }}></div>
               </div>
-              <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#8d99cf' }}>🎯 ✅ COMPLETO 100%</div>
+              <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#8d99cf' }}>🎯 {conquistasGhost === totalGhost ? '✅ COMPLETO 100%' : `${conquistasGhost}/${totalGhost} conquistas`}</div>
             </div>
 
             <div style={styles.globalMilestone}>
@@ -450,12 +406,13 @@ export default function PerfilUsuario() {
                 <div style={styles.conquistaProgresso}>
                   <div style={styles.jogoConquistaRow}>
                     <span>🏆 Conquistas</span>
-                    <span>{jogoFavorito.titulo === "Sekiro" || jogoFavorito.titulo === "Sekiro: Shadows Die Twice" ? "12/12" : "8/8"}</span>
+                    <span>{jogoFavorito.titulo === "Sekiro" || jogoFavorito.titulo === "Sekiro: Shadows Die Twice" ? `${conquistasSekiro}/${totalSekiro}` : `${conquistasGhost}/${totalGhost}`}</span>
                   </div>
-                    <div style={{ ...styles.progressFill, width: `100%` }}></div>
+                  <div style={styles.progressBar}>
+                    <div style={{ ...styles.progressFill, width: jogoFavorito.titulo === "Sekiro" || jogoFavorito.titulo === "Sekiro: Shadows Die Twice" ? (conquistasSekiro / totalSekiro) * 100 : (conquistasGhost / totalGhost) * 100 }}></div>
                   </div>
                 </div>
-           
+              </div>
             )}
           </div>
         </div>
@@ -507,34 +464,11 @@ export default function PerfilUsuario() {
               {ativos === "favoritos" && renderizarJogos(favoritos, 'favoritos')}
 
               {ativos === "conquistas" && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  <div style={{ ...styles.progressCard, marginBottom: '0.5rem' }}>
-                    <h3 style={{ color: '#e5e9ff', marginBottom: '0.5rem' }}>⚔️ Sekiro: Shadows Die Twice (12/12)</h3>
-                    {conquistas.filter(c => c.jogo === "Sekiro").map(c => (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: '#0d0f19', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #262c48', marginBottom: '0.5rem' }}>
-                        <div style={{ fontSize: '1.5rem' }}>{getMedalIcon(c.tipo)}</div>
-                        <div style={{ flex: 1 }}>
-                          <h4 style={{ color: 'white', fontSize: '0.85rem' }}>{c.nome}</h4>
-                          <p style={{ fontSize: '0.65rem', color: '#8d99cf' }}>{c.descricao}</p>
-                        </div>
-                        <small style={{ color: '#6e7cb3' }}>{formatarData(c.desbloqueadoEm)}</small>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={styles.progressCard}>
-                    <h3 style={{ color: '#e5e9ff', marginBottom: '0.5rem' }}>🍃 Ghost of Tsushima (8/8)</h3>
-                    {conquistas.filter(c => c.jogo === "Ghost of Tsushima").map(c => (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: '#0d0f19', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #262c48', marginBottom: '0.5rem' }}>
-                        <div style={{ fontSize: '1.5rem' }}>{getMedalIcon(c.tipo)}</div>
-                        <div style={{ flex: 1 }}>
-                          <h4 style={{ color: 'white', fontSize: '0.85rem' }}>{c.nome}</h4>
-                          <p style={{ fontSize: '0.65rem', color: '#8d99cf' }}>{c.descricao}</p>
-                        </div>
-                        <small style={{ color: '#6e7cb3' }}>{formatarData(c.desbloqueadoEm)}</small>
-                      </div>
-                    ))}
-                  </div>
+                <div style={styles.emptyState}>
+                  🎮 AINDA NÃO HÁ NENHUMA CONQUISTA
+                  <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#6e7cb3' }}>
+                    Complete desafios nos jogos para desbloquear conquistas!
+                  </p>
                 </div>
               )}
             </>
@@ -563,4 +497,4 @@ export default function PerfilUsuario() {
       </div>
     </div>
   );
-}                
+}
