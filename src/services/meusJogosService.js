@@ -1,8 +1,8 @@
-import API from "./api";
+const API = "https://alunos-ads-api-production.up.railway.app";
 
-export async function listarMeusJogos(token, usuarioId, pagina = 1, limite = 20) {
+export async function listarMeusJogos(token, usuarioId) {
   try {
-    const response = await fetch(`${API}/jogos?pagina=${pagina}&limite=${limite}`, {
+    const response = await fetch(`${API}/jogos`, {
       headers: {
         "token": `${token}`,
       },
@@ -12,18 +12,12 @@ export async function listarMeusJogos(token, usuarioId, pagina = 1, limite = 20)
     
     const data = await response.json();
     
-    const meusJogos = {
-      ...data,
-      itens: data.itens.filter(jogo => jogo.autor?.id === usuarioId)
-    };
+    const meusJogos = data.itens.filter(jogo => jogo.autor?.id === usuarioId);
     
-    meusJogos.total = meusJogos.itens.length;
-    meusJogos.paginas = Math.ceil(meusJogos.total / limite);
-    
-    return meusJogos;
+    return { itens: meusJogos, total: meusJogos.length, paginas: 1 };
   } catch (error) {
     console.error("Erro listarMeusJogos:", error);
-    throw error;
+    return { itens: [], total: 0, paginas: 1 };
   }
 }
 
@@ -87,22 +81,6 @@ export async function deletarJogo(id, token) {
     return true;
   } catch (error) {
     console.error("Erro deletarJogo:", error);
-    throw error;
-  }
-}
-
-export async function buscarJogo(id, token) {
-  try {
-    const response = await fetch(`${API}/jogos/${id}`, {
-      headers: {
-        "token": `${token}`,
-      },
-    });
-    
-    if (!response.ok) throw new Error("Erro ao buscar jogo");
-    return await response.json();
-  } catch (error) {
-    console.error("Erro buscarJogo:", error);
     throw error;
   }
 }

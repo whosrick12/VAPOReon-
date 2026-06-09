@@ -76,13 +76,12 @@ export default function MeusJogos() {
       </div>
 
       {showForm && (
-  <FormMeuJogo
-    jogo={jogoEditando}
-    onClose={handleFormClose}
-    token={token}
-    onSave={carregarJogos}
-  />
-)}
+        <FormMeuJogo
+          jogo={jogoEditando}
+          onClose={handleFormClose}
+          token={token}
+        />
+      )}
 
       {loading ? (
         <div className="meus-jogos-loading">Carregando seus jogos...</div>
