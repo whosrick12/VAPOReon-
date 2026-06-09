@@ -65,6 +65,7 @@ export default function Header({ jogos = [] }) {
 
       <nav className="nav">
         <a href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }}>Store</a>
+        <a href="/meus-jogos" onClick={(e) => { e.preventDefault(); navigate("/meus-jogos"); }}>Meus Jogos</a>
         <a href="/perfil" onClick={(e) => { e.preventDefault(); navigate("/perfil"); }}>Meu Perfil</a>
         <a href="/biblioteca" onClick={(e) => { e.preventDefault(); navigate("/biblioteca"); }}>Library</a>
         <a href="/support" onClick={(e) => e.preventDefault()}>Support</a>

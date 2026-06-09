@@ -11,8 +11,9 @@ import PopupPromocao from "./components/PopupPromocao";
 import ExploreCategorias from "./components/ExploreCategorias";
 import Login from "./components/Login";
 import PerfilUsuario from "./components/PerfilUsuario";
-import API from "./services/api";
 import Biblioteca from "./components/Biblioteca";
+import MeusJogos from "./components/MeusJogos";
+import API from "./services/api";
 
 function AppContent() {
   const [jogos, setJogos] = useState([]);
@@ -80,7 +81,6 @@ function AppContent() {
     return (
       <div>
         <Header jogos={jogos} />
-
         <div
           style={{
             textAlign: "center",
@@ -103,10 +103,7 @@ function AppContent() {
       )}
 
       <Routes>
-        <Route
-          path="/login"
-          element={<Login />}
-        />
+        <Route path="/login" element={<Login />} />
 
         <Route
           path="/"
@@ -120,9 +117,7 @@ function AppContent() {
                     voltarJogo={voltarJogo}
                   />
                 )}
-
                 <CardsPromocoes jogos={jogos} />
-
                 <ExploreCategorias />
               </>
             </ProtectedRoute>
@@ -148,10 +143,19 @@ function AppContent() {
         />
 
         <Route
-          path="/library"
+          path="/biblioteca"
           element={
             <ProtectedRoute>
               <Biblioteca />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/meus-jogos"
+          element={
+            <ProtectedRoute>
+              <MeusJogos />
             </ProtectedRoute>
           }
         />
@@ -167,4 +171,5 @@ function App() {
     </AuthProvider>
   );
 }
+
 export default App;
