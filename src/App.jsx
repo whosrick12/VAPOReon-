@@ -13,6 +13,7 @@ import Login from "./components/Login";
 import PerfilUsuario from "./components/PerfilUsuario";
 import Biblioteca from "./components/Biblioteca";
 import MeusJogos from "./components/MeusJogos";
+import CategoriaPage from "./components/CategoriaPage";
 import API from "./services/api";
 
 function AppContent() {
@@ -156,6 +157,15 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <MeusJogos />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/categoria/:categoria"
+          element={
+            <ProtectedRoute>
+              <CategoriaPage />
             </ProtectedRoute>
           }
         />

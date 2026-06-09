@@ -1,0 +1,366 @@
+/* src/CSS/CategoriaPage.css */
+
+.categoria-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0c15 0%, #0f111a 100%);
+  color: white;
+  padding: 2rem;
+}
+
+/* Header */
+.categoria-header {
+  margin-bottom: 2rem;
+}
+
+.btn-voltar {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+  margin-bottom: 1rem;
+}
+
+.btn-voltar:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-5px);
+}
+
+.categoria-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #fff, #a9b6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.categoria-header p {
+  color: #8d99cf;
+  font-size: 1rem;
+}
+
+/* Layout principal - sem sidebar, apenas grid */
+.categoria-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Grid de jogos */
+.jogos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+/* Card do jogo */
+.jogo-card {
+  background: rgba(13, 15, 25, 0.8);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.jogo-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(26, 110, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.jogo-card-imagem {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.jogo-card:hover .jogo-card-imagem {
+  transform: scale(1.05);
+}
+
+.jogo-card-imagem-wrapper {
+  overflow: hidden;
+  position: relative;
+}
+
+.jogo-card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.jogo-card:hover .jogo-card-overlay {
+  opacity: 1;
+}
+
+.btn-overlay {
+  background: #1a6eff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-overlay:hover {
+  background: #0f5ae0;
+  transform: scale(1.05);
+}
+
+.jogo-card-info {
+  padding: 1rem;
+}
+
+.jogo-card-titulo {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jogo-card-generos {
+  font-size: 0.7rem;
+  color: #8d99cf;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.genero-badge {
+  background: rgba(26, 110, 255, 0.2);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  color: #a9b6ff;
+}
+
+.jogo-card-descricao {
+  font-size: 0.75rem;
+  color: #b0b8e0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.jogo-card-footer {
+  padding: 0.8rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.jogo-card-preco {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a6eff;
+}
+
+.jogo-card-desconto {
+  background: #ff4444;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* Modal de detalhes (ao clicar no jogo) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #0f1220 0%, #0a0c15 100%);
+  border-radius: 20px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s;
+  z-index: 1;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.modal-banner {
+  height: 250px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.modal-banner-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(0deg, #0f1220 0%, transparent 100%);
+  padding: 2rem;
+}
+
+.modal-banner h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.modal-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-info-item {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.8rem;
+  border-radius: 12px;
+}
+
+.modal-info-label {
+  font-size: 0.7rem;
+  color: #8d99cf;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.modal-info-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+}
+
+.modal-descricao {
+  color: #b0b8e0;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.modal-botoes {
+  display: flex;
+  gap: 1rem;
+}
+
+.modal-btn-play {
+  background: #1a6eff;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  flex: 1;
+}
+
+.modal-btn-play:hover {
+  background: #0f5ae0;
+  transform: scale(1.02);
+}
+
+/* Loading */
+.categoria-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #0a0c15 0%, #0f111a 100%);
+  color: white;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #1a6eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .categoria-page {
+    padding: 1rem;
+  }
+  
+  .categoria-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .jogos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+  
+  .modal-content {
+    margin: 1rem;
+  }
+  
+  .modal-banner {
+    height: 200px;
+  }
+  
+  .modal-banner h2 {
+    font-size: 1.2rem;
+  }
+}
