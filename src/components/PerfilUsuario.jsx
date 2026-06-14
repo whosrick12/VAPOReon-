@@ -18,9 +18,12 @@ export default function PerfilUsuario() {
   const [xp, setXp] = useState(usuario?.xp || 1000);
   const [biblioteca, setBiblioteca] = useState([]);
   const [conquistas, setConquistas] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [favoritos, setFavoritos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ativos, setAtivos] = useState("biblioteca");
+  const [loadingConquistas, setLoadingConquistas] = useState(false);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   const carregarFavoritos = (bibliotecaData) => {
     const userKey = usuario?.matricula || usuario?.id || usuario?.email;
@@ -34,6 +37,102 @@ export default function PerfilUsuario() {
     }).filter(jogo => jogo !== null);
     
     setFavoritos(jogosFavoritados);
+  };
+
+  const carregarConquistas = async () => {
+    if (!usuario?.id) return;
+    setLoadingConquistas(true);
+    try {
+      const res = await fetch(`${API}/usuarios/${usuario.id}/conquistas`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const conquistasList = data.itens || data.conquistas || data;
+        setConquistas(conquistasList);
+      } else {
+        await carregarConquistasPorJogos();
+      }
+    } catch (error) {
+      console.error("Erro ao carregar conquistas:", error);
+      await carregarConquistasPorJogos();
+    } finally {
+      setLoadingConquistas(false);
+    }
+  };
+
+  const carregarConquistasPorJogos = async () => {
+    try {
+      const todasConquistas = [];
+      
+      for (const jogo of biblioteca) {
+        const res = await fetch(`${API}/jogos/${jogo.id}/conquistas`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          const conquistasJogo = data.itens || data.conquistas || data;
+          if (Array.isArray(conquistasJogo)) {
+            conquistasJogo.forEach(conq => {
+              todasConquistas.push({
+                ...conq,
+                jogo: jogo.titulo,
+                jogoId: jogo.id,
+                jogoCapa: jogo.capaUrl
+              });
+            });
+          }
+        }
+      }
+      
+      setConquistas(todasConquistas);
+    } catch (error) {
+      console.error("Erro ao carregar conquistas por jogo:", error);
+      setConquistas([]);
+    }
+  };
+
+  const carregarReviews = async () => {
+    if (!usuario?.id) return;
+    setLoadingReviews(true);
+    try {
+      const res = await fetch(`${API}/usuarios/${usuario.id}/reviews`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const reviewsList = data.itens || data.reviews || data;
+        
+        const reviewsComJogo = await Promise.all(
+          (Array.isArray(reviewsList) ? reviewsList : []).map(async (review) => {
+            try {
+              const jogoRes = await fetch(`${API}/jogos/${review.jogoId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              if (jogoRes.ok) {
+                const jogo = await jogoRes.json();
+                return { ...review, jogo: jogo.titulo, jogoCapa: jogo.capaUrl };
+              }
+            } catch (e) {
+              console.error(e);
+            }
+            return { ...review, jogo: "Jogo desconhecido" };
+          })
+        );
+        
+        setReviews(reviewsComJogo);
+      } else {
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar reviews:", error);
+      setReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
   };
 
   useEffect(() => {
@@ -52,8 +151,8 @@ export default function PerfilUsuario() {
           if (data && data.length > 0) {
             bibliotecaData = data.map(jogo => ({
               ...jogo,
-              conquistas: 0,
-              conquistasTotal: 0
+              conquistas: jogo.conquistas || 0,
+              conquistasTotal: jogo.conquistasTotal || 0
             }));
           }
         }
@@ -83,7 +182,6 @@ export default function PerfilUsuario() {
 
         setBiblioteca(bibliotecaData);
         carregarFavoritos(bibliotecaData);
-        setConquistas([]);
 
       } catch (error) {
         console.error(error);
@@ -109,13 +207,19 @@ export default function PerfilUsuario() {
         ];
         setBiblioteca(fallbackData);
         carregarFavoritos(fallbackData);
-        setConquistas([]);
       } finally {
         setLoading(false);
       }
     }
     carregarDados();
   }, [usuario, token]);
+
+  useEffect(() => {
+    if (biblioteca.length > 0 && !loading) {
+      carregarConquistas();
+      carregarReviews();
+    }
+  }, [biblioteca, loading]);
 
   useEffect(() => {
     function handleFavoritosUpdate() {
@@ -133,11 +237,15 @@ export default function PerfilUsuario() {
   const horasTotais = biblioteca.reduce((acc, jogo) => acc + (jogo.horasJogadas || 0), 0);
   const totalJogos = biblioteca.length;
   const totalConquistas = conquistas.length;
-  const totalReviews = 2;
+  const totalReviews = reviews.length;
   const totalFavoritos = favoritos.length;
 
-  const conquistasSekiro = biblioteca.find(j => j.titulo === "Sekiro: Shadows Die Twice")?.conquistas || 0;
-  const conquistasGhost = biblioteca.find(j => j.titulo === "Ghost of Tsushima")?.conquistas || 0;
+  const getConquistasPorJogo = (jogoId) => {
+    return conquistas.filter(c => c.jogoId === jogoId || c.jogo?.id === jogoId).length;
+  };
+
+  const conquistasSekiro = biblioteca.find(j => j.titulo === "Sekiro: Shadows Die Twice")?.conquistas || getConquistasPorJogo(1);
+  const conquistasGhost = biblioteca.find(j => j.titulo === "Ghost of Tsushima")?.conquistas || getConquistasPorJogo(2);
   const totalSekiro = 12;
   const totalGhost = 8;
   
@@ -152,11 +260,25 @@ export default function PerfilUsuario() {
   }
 
   function getMedalIcon(tipo) {
-    if (tipo === 'platina') return '🏆';
-    if (tipo === 'ouro') return '🥇';
-    if (tipo === 'prata') return '🥈';
-    return '🥉';
+    const tipoLower = (tipo || "").toLowerCase();
+    if (tipoLower === 'platina' || tipoLower === 'platinum') return '🏆';
+    if (tipoLower === 'ouro' || tipoLower === 'gold') return '🥇';
+    if (tipoLower === 'prata' || tipoLower === 'silver') return '🥈';
+    if (tipoLower === 'bronze') return '🥉';
+    return '🎮';
   }
+
+  const renderStars = (nota) => {
+    const stars = [];
+    const fullStars = Math.floor(nota);
+    const hasHalfStar = nota % 1 >= 0.5;
+    
+    for (let i = 0; i < fullStars; i++) stars.push('⭐');
+    if (hasHalfStar) stars.push('½');
+    for (let i = stars.length; i < 5; i++) stars.push('☆');
+    
+    return stars.join('');
+  };
 
   if (!usuario) {
     return <div style={{ background: '#0a0c15', color: 'white', padding: '2rem' }}>Usuário não encontrado</div>;
@@ -234,7 +356,14 @@ export default function PerfilUsuario() {
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: '1.2rem'
-    }
+    },
+    reviewCard: { background: '#0d0f19', borderRadius: '12px', padding: '1rem', border: '1px solid #262c48', marginBottom: '1rem' },
+    reviewHeader: { display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.8rem' },
+    reviewJogoImg: { width: '50px', height: '70px', objectFit: 'cover', borderRadius: '8px' },
+    reviewJogoNome: { fontSize: '0.9rem', fontWeight: 600, color: 'white' },
+    reviewStars: { fontSize: '0.8rem', marginTop: '0.2rem' },
+    reviewComentario: { fontSize: '0.8rem', color: '#b0b8e0', lineHeight: 1.5, marginBottom: '0.5rem' },
+    reviewData: { fontSize: '0.65rem', color: '#6e7cb3' }
   };
 
   const renderizarJogos = (jogosParaRenderizar, tipo = 'biblioteca') => {
@@ -258,19 +387,8 @@ export default function PerfilUsuario() {
     return (
       <div style={styles.bibliotecaGrid}>
         {jogosParaRenderizar.map(jogo => {
-          let conquistasJogo = 0;
-          let totalJogo = 0;
-
-          if (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice") {
-            conquistasJogo = 0;
-            totalJogo = 12;
-          } else if (jogo.titulo === "Ghost of Tsushima") {
-            conquistasJogo = 0;
-            totalJogo = 8;
-          } else {
-            conquistasJogo = jogo.conquistas || 0;
-            totalJogo = jogo.conquistasTotal || 0;
-          }
+          const conquistasJogo = getConquistasPorJogo(jogo.id);
+          const totalJogo = jogo.conquistasTotal || (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice" ? 12 : jogo.titulo === "Ghost of Tsushima" ? 8 : 0);
 
           return (
             <div key={jogo.id} style={styles.bibliotecaItem}>
@@ -298,7 +416,45 @@ export default function PerfilUsuario() {
     );
   };
 
-  return (
+  const renderizarReviews = () => {
+    if (loadingReviews) {
+      return <div style={styles.emptyState}>Carregando reviews...</div>;
+    }
+    
+    if (reviews.length === 0) {
+      return (
+        <div style={styles.emptyState}>
+          📝 NENHUMA REVIEW AINDA
+          <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#6e7cb3' }}>
+            Avalie os jogos que você jogou e compartilhe sua opinião!
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {reviews.map((review) => (
+          <div key={review.id} style={styles.reviewCard}>
+            <div style={styles.reviewHeader}>
+              {review.jogoCapa && (
+                <img src={review.jogoCapa} alt={review.jogo} style={styles.reviewJogoImg} />
+              )}
+              <div>
+                <h4 style={styles.reviewJogoNome}>{review.jogo}</h4>
+                <div style={styles.reviewStars}>{renderStars(review.nota || review.rating || 0)}</div>
+              </div>
+            </div>
+            <p style={styles.reviewComentario}>{review.comentario || review.descricao || "Sem comentário"}</p>
+            <div style={styles.reviewData}>
+              {formatarData(review.createdAt || review.data)}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+    return (
     <div style={styles.container}>
       <div style={styles.hero}>
         <img style={styles.heroBanner} src={banner} alt="banner" />
@@ -344,12 +500,16 @@ export default function PerfilUsuario() {
         <div style={styles.grid2col}>
           <div style={styles.conquestPanel}>
             <div style={styles.panelHeader}>
-              <h2 style={styles.panelHeaderH2}>🏅 Conquistas & Marcos Eternos <small style={{ fontSize: '0.6rem', color: '#7a86b8' }}>últimos desbloqueios</small></h2>
+              <h2 style={styles.panelHeaderH2}>🏅 Conquistas Recentes</h2>
             </div>
             <div style={styles.conquestList}>
-              {conquistas.length === 0 ? (
+              {loadingConquistas ? (
                 <div style={{ textAlign: 'center', padding: '2rem', color: '#6e7cb3' }}>
-                  🎮 AINDA NÃO HÁ NENHUMA CONQUISTA
+                  Carregando conquistas...
+                </div>
+              ) : conquistas.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#6e7cb3' }}>
+                  🎮 AINDA NENHUMA CONQUISTA
                 </div>
               ) : (
                 conquistas.slice(0, 10).map((c) => (
@@ -361,7 +521,7 @@ export default function PerfilUsuario() {
                         <p style={styles.conquestInfoP}>{c.descricao}</p>
                       </div>
                     </div>
-                    <div style={styles.conquestDate}>{formatarData(c.desbloqueadoEm)}</div>
+                    <div style={styles.conquestDate}>{formatarData(c.desbloqueadoEm || c.createdAt)}</div>
                   </div>
                 ))
               )}
@@ -374,7 +534,6 @@ export default function PerfilUsuario() {
               <div style={styles.progressBar}>
                 <div style={{ ...styles.progressFill, width: totalSekiro > 0 ? (conquistasSekiro / totalSekiro) * 100 : 0 }}></div>
               </div>
-              <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#8d99cf' }}>🎯 {conquistasSekiro === totalSekiro ? '✅ COMPLETO 100%' : `${conquistasSekiro}/${totalSekiro} conquistas`}</div>
             </div>
 
             <div style={styles.progressCard}>
@@ -382,7 +541,6 @@ export default function PerfilUsuario() {
               <div style={styles.progressBar}>
                 <div style={{ ...styles.progressFill, width: totalGhost > 0 ? (conquistasGhost / totalGhost) * 100 : 0 }}></div>
               </div>
-              <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#8d99cf' }}>🎯 {conquistasGhost === totalGhost ? '✅ COMPLETO 100%' : `${conquistasGhost}/${totalGhost} conquistas`}</div>
             </div>
 
             <div style={styles.globalMilestone}>
@@ -452,6 +610,12 @@ export default function PerfilUsuario() {
           >
             🏆 Conquistas ({conquistas.length})
           </button>
+          <button 
+            style={{ ...styles.tabBtn, ...(ativos === "reviews" ? styles.tabActive : {}) }} 
+            onClick={() => setAtivos("reviews")}
+          >
+            📝 Reviews ({reviews.length})
+          </button>
         </div>
 
         <div>
@@ -464,13 +628,34 @@ export default function PerfilUsuario() {
               {ativos === "favoritos" && renderizarJogos(favoritos, 'favoritos')}
 
               {ativos === "conquistas" && (
-                <div style={styles.emptyState}>
-                  🎮 AINDA NÃO HÁ NENHUMA CONQUISTA
-                  <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#6e7cb3' }}>
-                    Complete desafios nos jogos para desbloquear conquistas!
-                  </p>
-                </div>
+                loadingConquistas ? (
+                  <div style={styles.emptyState}>Carregando conquistas...</div>
+                ) : conquistas.length === 0 ? (
+                  <div style={styles.emptyState}>
+                    🎮 NENHUMA CONQUISTA AINDA
+                    <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#6e7cb3' }}>
+                      Complete desafios nos jogos para desbloquear conquistas!
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {conquistas.map((c) => (
+                      <div key={c.id} style={styles.conquestItem}>
+                        <div style={styles.conquestLeft}>
+                          <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
+                          <div>
+                            <h4 style={styles.conquestInfoH4}>{c.nome} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
+                            <p style={styles.conquestInfoP}>{c.descricao}</p>
+                          </div>
+                        </div>
+                        <div style={styles.conquestDate}>{formatarData(c.desbloqueadoEm || c.createdAt)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
+
+              {ativos === "reviews" && renderizarReviews()}
             </>
           )}
         </div>
