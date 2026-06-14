@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getUserGames } from "../services/fakeDatabase";
 import { getFavoritos, addFavorito, removeFavorito } from "../services/favoritosLocalService";
+import API from "../services/api";
 import "../CSS/Biblioteca.css";
 
 export default function Biblioteca() {
-  const { usuario } = useAuth();
+  const { usuario, token } = useAuth();
 
   const [jogos, setJogos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,76 +14,153 @@ export default function Biblioteca() {
   const [favoritos, setFavoritos] = useState([]);
   const [favoritando, setFavoritando] = useState(false);
 
-  function getConquistasPorJogo(titulo) {
-    if (titulo === "Sekiro" || titulo === "Sekiro: Shadows Die Twice") {
-      return 12;
-    }
-    if (titulo === "Ghost of Tsushima") {
-      return 8;
-    }
-    return 0;
-  }
-
-  function getTotalConquistas(titulo) {
-    if (titulo === "Sekiro" || titulo === "Sekiro: Shadows Die Twice") {
-      return 12;
-    }
-    if (titulo === "Ghost of Tsushima") {
-      return 8;
-    }
-    return 0;
-  }
-
-  useEffect(() => {
-    function carregarBiblioteca() {
-      if (!usuario) return;
-
-      console.log("Usando biblioteca local");
-      const jogosLocais = getUserGames(usuario.id);
+  // Buscar conquistas de um jogo específico na API
+  const buscarConquistasDoJogo = async (jogoId) => {
+    try {
+      console.log(`Buscando conquistas do jogo ${jogoId} na API...`);
+      const response = await fetch(`${API}/conquistas?jogoId=${jogoId}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
       
-      const jogosAtualizados = jogosLocais.map(jogo => ({
-        ...jogo,
-        conquistas: getConquistasPorJogo(jogo.titulo),
-        totalConquistas: getTotalConquistas(jogo.titulo)
-      }));
-
-      setJogos(jogosAtualizados);
-      if (jogosAtualizados.length > 0) {
-        setJogoSelecionado(jogosAtualizados[0]);
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`Conquistas do jogo ${jogoId} (API):`, data);
+        
+        let conquistasList = [];
+        if (data.itens) conquistasList = data.itens;
+        else if (data.conquistas) conquistasList = data.conquistas;
+        else if (Array.isArray(data)) conquistasList = data;
+        
+        return {
+          conquistas: conquistasList.length,
+          totalConquistas: conquistasList.length,
+          conquistasDetalhes: conquistasList
+        };
+      } else {
+        console.log(`API sem conquistas para o jogo ${jogoId}`);
+        return { conquistas: 0, totalConquistas: 0, conquistasDetalhes: [] };
       }
-      setLoading(false);
+    } catch (error) {
+      console.error(`Erro ao buscar conquistas do jogo ${jogoId}:`, error);
+      return { conquistas: 0, totalConquistas: 0, conquistasDetalhes: [] };
+    }
+  };
+
+  // Buscar apenas os jogos do usuário logado
+  useEffect(() => {
+    async function carregarBiblioteca() {
+      if (!usuario?.id) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      
+      try {
+        console.log("=== BUSCANDO APENAS JOGOS DO USUÁRIO LOGADO ===");
+        console.log("Usuário ID:", usuario.id);
+        console.log("Usuário matricula:", usuario.matricula);
+        
+        // Buscar jogos filtrando pelo autorId = id do usuário logado
+        const response = await fetch(`${API}/jogos?autorId=${usuario.id}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+        
+        console.log("Status resposta /jogos?autorId:", response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Dados brutos da API:", data);
+          
+          let jogosList = [];
+          if (data.itens) jogosList = data.itens;
+          else if (data.jogos) jogosList = data.jogos;
+          else if (Array.isArray(data)) jogosList = data;
+          
+          console.log("Total de jogos retornados pela API:", jogosList.length);
+          
+          // FILTRO: Garantir que só os jogos do usuário logado aparecem
+          const jogosDoUsuario = jogosList.filter(jogo => {
+            const isAutor = jogo.autorId === usuario.id || 
+                           jogo.autorId === usuario.matricula ||
+                           jogo.userId === usuario.id ||
+                           jogo.usuarioId === usuario.id ||
+                           jogo.criadorId === usuario.id;
+            
+            if (isAutor) {
+              console.log(`✅ Jogo do usuário: ${jogo.titulo} (ID: ${jogo.id}, autorId: ${jogo.autorId})`);
+            } else {
+              console.log(`❌ Jogo ignorado (não é do usuário): ${jogo.titulo} (autorId: ${jogo.autorId})`);
+            }
+            
+            return isAutor;
+          });
+          
+          console.log(`Jogos do usuário ${usuario.id}: ${jogosDoUsuario.length}`);
+          
+          if (jogosDoUsuario.length === 0) {
+            console.log("Nenhum jogo encontrado para este usuário");
+            setJogos([]);
+            setLoading(false);
+            return;
+          }
+          
+          // Buscar conquistas para cada jogo do usuário
+          const jogosComConquistas = await Promise.all(
+            jogosDoUsuario.map(async (jogo) => {
+              const conquistasInfo = await buscarConquistasDoJogo(jogo.id);
+              return {
+                ...jogo,
+                conquistas: conquistasInfo.conquistas,
+                totalConquistas: conquistasInfo.totalConquistas,
+                conquistasDetalhes: conquistasInfo.conquistasDetalhes
+              };
+            })
+          );
+          
+          console.log("Jogos finais do usuário:", jogosComConquistas.map(j => j.titulo));
+          setJogos(jogosComConquistas);
+          
+          if (jogosComConquistas.length > 0) {
+            setJogoSelecionado(jogosComConquistas[0]);
+          }
+        } else {
+          console.error("Erro ao buscar jogos:", response.status);
+          setJogos([]);
+        }
+        
+      } catch (error) {
+        console.error("Erro ao carregar biblioteca:", error);
+        setJogos([]);
+      } finally {
+        setLoading(false);
+      }
     }
 
     function carregarFavoritos() {
       const userKey = usuario?.matricula || usuario?.id || usuario?.email;
-      if (!userKey) {
-        console.log("Usuário não tem identificador para favoritos");
-        return;
-      }
-      console.log("Carregando favoritos para:", userKey);
+      if (!userKey) return;
+      
       const favs = getFavoritos(userKey);
-      console.log("Favoritos carregados:", favs);
       setFavoritos(favs.map(f => f.jogoId || f.id));
     }
 
     carregarBiblioteca();
     carregarFavoritos();
-  }, [usuario]);
+  }, [usuario, token]);
 
   async function handleFavorito(jogo, e) {
     e.stopPropagation();
     
     const userKey = usuario?.matricula || usuario?.id || usuario?.email;
     
-    console.log("=== DEBUG FAVORITO ===");
-    console.log("Usuário completo:", usuario);
-    console.log("UserKey (identificador):", userKey);
-    console.log("Jogo:", jogo);
-    console.log("Jogo ID:", jogo.id);
-    console.log("Favoritos atuais (IDs):", favoritos);
-    
     if (!userKey) {
-      console.error("Usuário não tem identificador (matricula/id/email)!");
       alert("Erro: Usuário não identificado. Faça login novamente.");
       return;
     }
@@ -91,27 +168,17 @@ export default function Biblioteca() {
     setFavoritando(true);
     try {
       if (favoritos.includes(jogo.id)) {
-        console.log("Removendo dos favoritos...");
         removeFavorito(userKey, jogo.id);
         setFavoritos(favoritos.filter(id => id !== jogo.id));
-        console.log("Removido com sucesso!");
       } else {
-        console.log("Adicionando aos favoritos...");
         addFavorito(userKey, jogo.id, jogo);
         setFavoritos([...favoritos, jogo.id]);
-        console.log("Adicionado com sucesso!");
       }
       
-      // Verificar se salvou no localStorage
-      const saved = localStorage.getItem("favoritos_db");
-      console.log("LocalStorage após operação:", saved);
-      
-      // DISPARAR EVENTO PARA ATUALIZAR A PÁGINA DE PERFIL
       window.dispatchEvent(new Event('favoritosAtualizados'));
       
     } catch (error) {
-      console.error("Erro detalhado ao favoritar:", error);
-      alert("Erro ao favoritar: " + error.message);
+      console.error("Erro ao favoritar:", error);
     } finally {
       setFavoritando(false);
     }
@@ -124,7 +191,17 @@ export default function Biblioteca() {
   if (loading) {
     return (
       <div className="library-loading">
-        Carregando biblioteca...
+        Carregando sua biblioteca...
+      </div>
+    );
+  }
+
+  if (jogos.length === 0) {
+    return (
+      <div className="library-empty">
+        <h2>📚 Sua biblioteca está vazia</h2>
+        <p>Você ainda não criou nenhum jogo.</p>
+        <p>Vá em "Criar Jogo" e adicione seu primeiro jogo!</p>
       </div>
     );
   }
@@ -132,13 +209,13 @@ export default function Biblioteca() {
   return (
     <div className="library-page">
       <div className="library-sidebar">
-        <h2>Biblioteca</h2>
+        <h2>Minha Biblioteca</h2>
         <div className="library-total">
-          {jogos.length} jogos
+          {jogos.length} jogos criados por você
         </div>
         <input
           type="text"
-          placeholder="Pesquisar..."
+          placeholder="Pesquisar seus jogos..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           className="library-search"
@@ -156,6 +233,9 @@ export default function Biblioteca() {
               <div>
                 <h4>{jogo.titulo}</h4>
                 <span>{jogo.horasJogadas || 0} horas</span>
+                <div className="conquistas-info">
+                  🏆 {jogo.conquistas || 0}/{jogo.totalConquistas || 0} conquistas
+                </div>
               </div>
             </div>
           ))}
@@ -193,7 +273,7 @@ export default function Biblioteca() {
                 <span>Horas jogadas</span>
               </div>
               <div className="stat-box">
-                <h3>{jogoSelecionado.conquistas || 0} / {jogoSelecionado.totalConquistas || getTotalConquistas(jogoSelecionado.titulo)}</h3>
+                <h3>{jogoSelecionado.conquistas || 0} / {jogoSelecionado.totalConquistas || 0}</h3>
                 <span>Conquistas</span>
               </div>
               <div className="stat-box">
@@ -208,6 +288,32 @@ export default function Biblioteca() {
             <div className="library-about">
               <h2>Sobre este jogo</h2>
               <p>{jogoSelecionado.sinopse || jogoSelecionado.descricao}</p>
+            </div>
+
+            {/* Seção de Conquistas do jogo */}
+            <div className="library-conquistas">
+              <h2>🏆 Conquistas do Jogo</h2>
+              {jogoSelecionado.conquistasDetalhes && jogoSelecionado.conquistasDetalhes.length > 0 ? (
+                <div className="conquistas-grid">
+                  {jogoSelecionado.conquistasDetalhes.map((conquista, index) => (
+                    <div key={index} className="conquista-card">
+                      <div className="conquista-icon">
+                        {conquista.tipo === "ouro" ? "🥇" : conquista.tipo === "prata" ? "🥈" : conquista.tipo === "bronze" ? "🥉" : "🏅"}
+                      </div>
+                      <div className="conquista-info">
+                        <h4>{conquista.nome}</h4>
+                        <p>{conquista.descricao}</p>
+                        <span className="conquista-tipo">{conquista.tipo || "Conquista"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="nenhuma-conquista">
+                  <p></p>
+                  <p className="conquista-hint"></p>
+                </div>
+              )}
             </div>
 
             <div className="library-gallery">
@@ -225,7 +331,7 @@ export default function Biblioteca() {
           </>
         ) : (
           <div className="library-empty">
-            Nenhum jogo encontrado.
+            Selecione um jogo na lista ao lado
           </div>
         )}
       </div>

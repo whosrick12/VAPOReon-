@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { updateUser } from "../services/fakeDatabase";
 import { getFavoritos } from "../services/favoritosLocalService";
 import API from "../services/api";
 
@@ -9,7 +8,6 @@ export default function PerfilUsuario() {
 
   const [editando, setEditando] = useState(false);
   const [nome, setNome] = useState(usuario?.nome || "Carlos");
-  const [username, setUsername] = useState(usuario?.username || "carlos_gamer");
   const [bio, setBio] = useState(usuario?.bio || "Caçador de conquistas 🎮");
   const [avatar, setAvatar] = useState(usuario?.avatar || "");
   const [banner, setBanner] = useState(usuario?.banner || "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600");
@@ -39,75 +37,60 @@ export default function PerfilUsuario() {
     setFavoritos(jogosFavoritados);
   };
 
+  // Buscar conquistas da API
   const carregarConquistas = async () => {
     if (!usuario?.id) return;
     setLoadingConquistas(true);
     try {
-      const res = await fetch(`${API}/usuarios/${usuario.id}/conquistas`, {
+      console.log("Buscando conquistas da API...");
+      const response = await fetch(`${API}/conquistas`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (res.ok) {
-        const data = await res.json();
-        const conquistasList = data.itens || data.conquistas || data;
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Conquistas recebidas da API:", data);
+        
+        let conquistasList = [];
+        if (data.itens) conquistasList = data.itens;
+        else if (data.conquistas) conquistasList = data.conquistas;
+        else if (Array.isArray(data)) conquistasList = data;
+        
         setConquistas(conquistasList);
       } else {
-        await carregarConquistasPorJogos();
+        console.log("Erro ao buscar conquistas:", response.status);
+        setConquistas([]);
       }
     } catch (error) {
       console.error("Erro ao carregar conquistas:", error);
-      await carregarConquistasPorJogos();
+      setConquistas([]);
     } finally {
       setLoadingConquistas(false);
     }
   };
 
-  const carregarConquistasPorJogos = async () => {
-    try {
-      const todasConquistas = [];
-      
-      for (const jogo of biblioteca) {
-        const res = await fetch(`${API}/jogos/${jogo.id}/conquistas`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          const conquistasJogo = data.itens || data.conquistas || data;
-          if (Array.isArray(conquistasJogo)) {
-            conquistasJogo.forEach(conq => {
-              todasConquistas.push({
-                ...conq,
-                jogo: jogo.titulo,
-                jogoId: jogo.id,
-                jogoCapa: jogo.capaUrl
-              });
-            });
-          }
-        }
-      }
-      
-      setConquistas(todasConquistas);
-    } catch (error) {
-      console.error("Erro ao carregar conquistas por jogo:", error);
-      setConquistas([]);
-    }
-  };
-
+  // Buscar reviews da API
   const carregarReviews = async () => {
     if (!usuario?.id) return;
     setLoadingReviews(true);
     try {
-      const res = await fetch(`${API}/usuarios/${usuario.id}/reviews`, {
+      console.log("Buscando reviews da API...");
+      const response = await fetch(`${API}/reviews`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (res.ok) {
-        const data = await res.json();
-        const reviewsList = data.itens || data.reviews || data;
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Reviews recebidas da API:", data);
         
+        let reviewsList = [];
+        if (data.itens) reviewsList = data.itens;
+        else if (data.reviews) reviewsList = data.reviews;
+        else if (Array.isArray(data)) reviewsList = data;
+        
+        // Buscar informações dos jogos para cada review
         const reviewsComJogo = await Promise.all(
-          (Array.isArray(reviewsList) ? reviewsList : []).map(async (review) => {
+          reviewsList.map(async (review) => {
             try {
               const jogoRes = await fetch(`${API}/jogos/${review.jogoId}`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -125,6 +108,7 @@ export default function PerfilUsuario() {
         
         setReviews(reviewsComJogo);
       } else {
+        console.log("Erro ao buscar reviews:", response.status);
         setReviews([]);
       }
     } catch (error) {
@@ -140,73 +124,60 @@ export default function PerfilUsuario() {
       if (!usuario?.id) return;
       setLoading(true);
       try {
-        const res = await fetch(`${API}/biblioteca/me`, {
-          headers: { Authorization: `Bearer ${token}` }
+        console.log("Token sendo usado:", token);
+        
+        if (!token) {
+          console.log("Token não encontrado");
+          setBiblioteca([]);
+          carregarFavoritos([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Buscar jogos do usuário logado
+        const res = await fetch(`${API}/jogos?autorId=${usuario.id}`, {
+          method: "GET",
+          headers: { 
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
         });
+        
+        console.log("Status da resposta /jogos?autorId:", res.status);
 
         let bibliotecaData = [];
 
         if (res.ok) {
           const data = await res.json();
-          if (data && data.length > 0) {
-            bibliotecaData = data.map(jogo => ({
-              ...jogo,
-              conquistas: jogo.conquistas || 0,
-              conquistasTotal: jogo.conquistasTotal || 0
-            }));
-          }
-        }
-
-        if (bibliotecaData.length === 0) {
-          bibliotecaData = [
-            {
-              id: 1,
-              titulo: "Sekiro: Shadows Die Twice",
-              horasJogadas: 73,
-              capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/814380/header.jpg",
-              ultimaVez: "2025-03-05",
-              conquistas: 0,
-              conquistasTotal: 12
-            },
-            {
-              id: 2,
-              titulo: "Ghost of Tsushima",
-              horasJogadas: 45,
-              capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2215430/header.jpg",
-              ultimaVez: "2025-03-20",
-              conquistas: 0,
-              conquistasTotal: 8
-            }
-          ];
+          console.log("Jogos recebidos da API:", data);
+          
+          let jogosList = [];
+          if (data.itens) jogosList = data.itens;
+          else if (data.jogos) jogosList = data.jogos;
+          else if (Array.isArray(data)) jogosList = data;
+          
+          // Filtrar apenas jogos do usuário logado
+          const jogosDoUsuario = jogosList.filter(jogo => 
+            jogo.autorId === usuario.id || 
+            jogo.userId === usuario.id || 
+            jogo.usuarioId === usuario.id ||
+            jogo.criadorId === usuario.id
+          );
+          
+          bibliotecaData = jogosDoUsuario.map(jogo => ({
+            ...jogo,
+            conquistas: 0,
+            conquistasTotal: 0
+          }));
         }
 
         setBiblioteca(bibliotecaData);
         carregarFavoritos(bibliotecaData);
 
       } catch (error) {
-        console.error(error);
-        const fallbackData = [
-          {
-            id: 1,
-            titulo: "Sekiro: Shadows Die Twice",
-            horasJogadas: 73,
-            capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/814380/header.jpg",
-            ultimaVez: "2025-03-05",
-            conquistas: 0,
-            conquistasTotal: 12
-          },
-          {
-            id: 2,
-            titulo: "Ghost of Tsushima",
-            horasJogadas: 45,
-            capaUrl: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2215430/header.jpg",
-            ultimaVez: "2025-03-20",
-            conquistas: 0,
-            conquistasTotal: 8
-          }
-        ];
-        setBiblioteca(fallbackData);
-        carregarFavoritos(fallbackData);
+        console.error("Erro ao carregar dados:", error);
+        setBiblioteca([]);
+        carregarFavoritos([]);
       } finally {
         setLoading(false);
       }
@@ -215,11 +186,11 @@ export default function PerfilUsuario() {
   }, [usuario, token]);
 
   useEffect(() => {
-    if (biblioteca.length > 0 && !loading) {
+    if (!loading) {
       carregarConquistas();
       carregarReviews();
     }
-  }, [biblioteca, loading]);
+  }, [loading]);
 
   useEffect(() => {
     function handleFavoritosUpdate() {
@@ -244,8 +215,8 @@ export default function PerfilUsuario() {
     return conquistas.filter(c => c.jogoId === jogoId || c.jogo?.id === jogoId).length;
   };
 
-  const conquistasSekiro = biblioteca.find(j => j.titulo === "Sekiro: Shadows Die Twice")?.conquistas || getConquistasPorJogo(1);
-  const conquistasGhost = biblioteca.find(j => j.titulo === "Ghost of Tsushima")?.conquistas || getConquistasPorJogo(2);
+  const conquistasSekiro = getConquistasPorJogo(68);
+  const conquistasGhost = getConquistasPorJogo(67);
   const totalSekiro = 12;
   const totalGhost = 8;
   
@@ -280,6 +251,13 @@ export default function PerfilUsuario() {
     return stars.join('');
   };
 
+  const updateUserLocal = async (userId, data) => {
+    console.log("Atualizando usuário:", userId, data);
+    setNome(data.nome || nome);
+    setBio(data.bio || bio);
+    setAvatar(data.avatar || avatar);
+  };
+
   if (!usuario) {
     return <div style={{ background: '#0a0c15', color: 'white', padding: '2rem' }}>Usuário não encontrado</div>;
   }
@@ -294,8 +272,7 @@ export default function PerfilUsuario() {
     avatar: { width: '140px', height: '140px', borderRadius: '50%', border: '4px solid #1a6eff', objectFit: 'cover', background: '#1a1f2e' },
     avatarFrame: { position: 'absolute', bottom: '5px', right: '5px', background: '#1a6eff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', color: 'white', border: '2px solid #0a0c15' },
     heroInfo: { flex: 1, marginBottom: '0.5rem' },
-    name: { fontSize: '2rem', color: 'white', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' },
-    username: { fontSize: '0.9rem', color: '#8d99cf', background: 'rgba(0,0,0,0.5)', padding: '0.2rem 0.8rem', borderRadius: '20px' },
+    name: { fontSize: '2rem', color: 'white', marginBottom: '0.25rem' },
     userStatus: { display: 'flex', alignItems: 'center', gap: '0.8rem', marginTop: '0.5rem', flexWrap: 'wrap' },
     statusOnline: { background: '#2ecc71', width: '10px', height: '10px', borderRadius: '50%', boxShadow: '0 0 5px #2ecc71' },
     badgeLevel: { background: 'linear-gradient(135deg, #2c3e50, #1a1f2e)', padding: '0.25rem 0.8rem', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, color: '#b0b8e0' },
@@ -388,7 +365,7 @@ export default function PerfilUsuario() {
       <div style={styles.bibliotecaGrid}>
         {jogosParaRenderizar.map(jogo => {
           const conquistasJogo = getConquistasPorJogo(jogo.id);
-          const totalJogo = jogo.conquistasTotal || (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice" ? 12 : jogo.titulo === "Ghost of Tsushima" ? 8 : 0);
+          const totalJogo = jogo.conquistasTotal || (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice" ? 12 : 8);
 
           return (
             <div key={jogo.id} style={styles.bibliotecaItem}>
@@ -465,7 +442,7 @@ export default function PerfilUsuario() {
               <div style={styles.avatarFrame} onClick={() => { const newUrl = prompt("URL do avatar:", avatar); if (newUrl) setAvatar(newUrl); }}>✎</div>
             </div>
             <div style={styles.heroInfo}>
-              <div style={styles.name}>{nome}<span style={styles.username}>@{username}</span></div>
+              <div style={styles.name}>{nome}</div>
               <div style={styles.userStatus}>
                 <div style={styles.statusOnline}></div>
                 <span>Online</span>
@@ -663,7 +640,7 @@ export default function PerfilUsuario() {
         <div style={styles.actions}>
           {editando ? (
             <>
-              <button onClick={() => { updateUser(usuario.id, { nome, bio, avatar }); setEditando(false); }} style={styles.btnSalvar}>
+              <button onClick={() => { updateUserLocal(usuario.id, { nome, bio, avatar }); setEditando(false); }} style={styles.btnSalvar}>
                 Salvar
               </button>
               <button onClick={() => { setNome(usuario.nome); setBio(usuario.bio || ""); setEditando(false); }} style={styles.btnCancelar}>
