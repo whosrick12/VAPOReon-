@@ -14,6 +14,7 @@ import PerfilUsuario from "./components/PerfilUsuario";
 import Biblioteca from "./components/Biblioteca";
 import MeusJogos from "./components/MeusJogos";
 import CategoriaPage from "./components/CategoriaPage";
+import HeroVideo from "./components/HeroVideo";
 import API from "./services/api";
 
 function AppContent() {
@@ -27,6 +28,8 @@ function AppContent() {
   const podeMostrarPopup =
     usuario &&
     location.pathname === "/";
+  
+  const mostrarHeroVideo = location.pathname === "/";
 
   useEffect(() => {
     async function carregarJogos() {
@@ -98,6 +101,8 @@ function AppContent() {
   return (
     <div>
       <Header jogos={jogos} />
+      
+      {mostrarHeroVideo && <HeroVideo />}
 
       {podeMostrarPopup && jogos.length > 0 && (
         <PopupPromocao jogos={jogos} />

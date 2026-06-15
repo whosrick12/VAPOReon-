@@ -15,13 +15,15 @@ export default function PerfilUsuario() {
   const [steamLevel, setSteamLevel] = useState(usuario?.steamLevel || 15);
   const [xp, setXp] = useState(usuario?.xp || 1000);
   const [biblioteca, setBiblioteca] = useState([]);
-  const [conquistas, setConquistas] = useState([]);
+  const [conquistasDesbloqueadas, setConquistasDesbloqueadas] = useState([]);
+  const [conquistasDisponiveis, setConquistasDisponiveis] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [favoritos, setFavoritos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ativos, setAtivos] = useState("biblioteca");
   const [loadingConquistas, setLoadingConquistas] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [totaisConquistas, setTotaisConquistas] = useState({});
 
   const carregarFavoritos = (bibliotecaData) => {
     const userKey = usuario?.matricula || usuario?.id || usuario?.email;
@@ -37,80 +39,103 @@ export default function PerfilUsuario() {
     setFavoritos(jogosFavoritados);
   };
 
-  // Buscar conquistas da API
   const carregarConquistas = async () => {
     if (!usuario?.id) return;
     setLoadingConquistas(true);
     try {
-      console.log("Buscando conquistas da API...");
-      const response = await fetch(`${API}/conquistas`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      let todasDisponiveis = [];
+      let desbloqueadas = [];
+      let totais = {};
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Conquistas recebidas da API:", data);
-        
-        let conquistasList = [];
-        if (data.itens) conquistasList = data.itens;
-        else if (data.conquistas) conquistasList = data.conquistas;
-        else if (Array.isArray(data)) conquistasList = data;
-        
-        setConquistas(conquistasList);
-      } else {
-        console.log("Erro ao buscar conquistas:", response.status);
-        setConquistas([]);
+      for (const jogo of biblioteca) {
+        try {
+          const conquistasRes = await fetch(`${API}/jogos/${jogo.id}/conquistas`, {
+            headers: { "token": `${token}` }
+          });
+          
+          if (conquistasRes.ok) {
+            const conquistasData = await conquistasRes.json();
+            let conquistasList = [];
+            if (conquistasData.itens) conquistasList = conquistasData.itens;
+            else if (conquistasData.conquistas) conquistasList = conquistasData.conquistas;
+            else if (Array.isArray(conquistasData)) conquistasList = conquistasData;
+            
+            totais[jogo.id] = conquistasList.length;
+            
+            conquistasList.forEach(conquista => {
+              todasDisponiveis.push({
+                ...conquista,
+                jogo: jogo.titulo,
+                jogoId: jogo.id,
+                desbloqueada: false
+              });
+            });
+          }
+        } catch (e) {
+          console.error(`Erro ao buscar conquistas do jogo ${jogo.id}:`, e);
+          totais[jogo.id] = 0;
+        }
       }
+      
+      setTotaisConquistas(totais);
+      setConquistasDisponiveis(todasDisponiveis);
+      setConquistasDesbloqueadas([]);
     } catch (error) {
       console.error("Erro ao carregar conquistas:", error);
-      setConquistas([]);
+      setConquistasDisponiveis([]);
+      setConquistasDesbloqueadas([]);
     } finally {
       setLoadingConquistas(false);
     }
   };
 
-  // Buscar reviews da API
   const carregarReviews = async () => {
     if (!usuario?.id) return;
     setLoadingReviews(true);
     try {
-      console.log("Buscando reviews da API...");
-      const response = await fetch(`${API}/reviews`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const jogosRes = await fetch(`${API}/jogos?autorId=${usuario.id}`, {
+        headers: { "token": `${token}` }
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Reviews recebidas da API:", data);
+      let todasReviews = [];
+      
+      if (jogosRes.ok) {
+        const jogosData = await jogosRes.json();
+        let jogosList = [];
+        if (jogosData.itens) jogosList = jogosData.itens;
+        else if (jogosData.jogos) jogosList = jogosData.jogos;
+        else if (Array.isArray(jogosData)) jogosList = jogosData;
         
-        let reviewsList = [];
-        if (data.itens) reviewsList = data.itens;
-        else if (data.reviews) reviewsList = data.reviews;
-        else if (Array.isArray(data)) reviewsList = data;
-        
-        // Buscar informações dos jogos para cada review
-        const reviewsComJogo = await Promise.all(
-          reviewsList.map(async (review) => {
-            try {
-              const jogoRes = await fetch(`${API}/jogos/${review.jogoId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+        for (const jogo of jogosList) {
+          try {
+            const reviewsRes = await fetch(`${API}/jogos/${jogo.id}/reviews`, {
+              headers: { "token": `${token}` }
+            });
+            
+            if (reviewsRes.ok) {
+              const reviewsData = await reviewsRes.json();
+              let reviewsList = [];
+              if (reviewsData.itens) reviewsList = reviewsData.itens;
+              else if (reviewsData.reviews) reviewsList = reviewsData.reviews;
+              else if (Array.isArray(reviewsData)) reviewsList = reviewsData;
+              
+              const reviewsDoUsuario = reviewsList.filter(r => r.autorId === usuario.id);
+              
+              reviewsDoUsuario.forEach(review => {
+                todasReviews.push({
+                  ...review,
+                  jogo: jogo.titulo,
+                  jogoCapa: jogo.capaUrl
+                });
               });
-              if (jogoRes.ok) {
-                const jogo = await jogoRes.json();
-                return { ...review, jogo: jogo.titulo, jogoCapa: jogo.capaUrl };
-              }
-            } catch (e) {
-              console.error(e);
             }
-            return { ...review, jogo: "Jogo desconhecido" };
-          })
-        );
-        
-        setReviews(reviewsComJogo);
-      } else {
-        console.log("Erro ao buscar reviews:", response.status);
-        setReviews([]);
+          } catch (e) {
+            console.error(`Erro ao buscar reviews do jogo ${jogo.id}:`, e);
+          }
+        }
       }
+      
+      setReviews(todasReviews);
     } catch (error) {
       console.error("Erro ao carregar reviews:", error);
       setReviews([]);
@@ -124,51 +149,34 @@ export default function PerfilUsuario() {
       if (!usuario?.id) return;
       setLoading(true);
       try {
-        console.log("Token sendo usado:", token);
-        
         if (!token) {
-          console.log("Token não encontrado");
           setBiblioteca([]);
           carregarFavoritos([]);
           setLoading(false);
           return;
         }
         
-        // Buscar jogos do usuário logado
-        const res = await fetch(`${API}/jogos?autorId=${usuario.id}`, {
+        const res = await fetch(`${API}/biblioteca/me`, {
           method: "GET",
           headers: { 
-            "Authorization": `Bearer ${token}`,
+            "token": `${token}`,
             "Content-Type": "application/json"
           }
         });
-        
-        console.log("Status da resposta /jogos?autorId:", res.status);
 
         let bibliotecaData = [];
 
         if (res.ok) {
           const data = await res.json();
-          console.log("Jogos recebidos da API:", data);
           
-          let jogosList = [];
-          if (data.itens) jogosList = data.itens;
-          else if (data.jogos) jogosList = data.jogos;
-          else if (Array.isArray(data)) jogosList = data;
-          
-          // Filtrar apenas jogos do usuário logado
-          const jogosDoUsuario = jogosList.filter(jogo => 
-            jogo.autorId === usuario.id || 
-            jogo.userId === usuario.id || 
-            jogo.usuarioId === usuario.id ||
-            jogo.criadorId === usuario.id
-          );
-          
-          bibliotecaData = jogosDoUsuario.map(jogo => ({
-            ...jogo,
-            conquistas: 0,
-            conquistasTotal: 0
-          }));
+          for (const item of data) {
+            const jogoInfo = item.jogo || item;
+            bibliotecaData.push({
+              ...jogoInfo,
+              horasJogadas: item.horasJogadas || 0,
+              adicionadoEm: item.adicionadoEm
+            });
+          }
         }
 
         setBiblioteca(bibliotecaData);
@@ -186,11 +194,11 @@ export default function PerfilUsuario() {
   }, [usuario, token]);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && biblioteca.length > 0) {
       carregarConquistas();
       carregarReviews();
     }
-  }, [loading]);
+  }, [loading, biblioteca]);
 
   useEffect(() => {
     function handleFavoritosUpdate() {
@@ -207,24 +215,23 @@ export default function PerfilUsuario() {
 
   const horasTotais = biblioteca.reduce((acc, jogo) => acc + (jogo.horasJogadas || 0), 0);
   const totalJogos = biblioteca.length;
-  const totalConquistas = conquistas.length;
+  const totalConquistasDesbloqueadas = conquistasDesbloqueadas.length;
   const totalReviews = reviews.length;
   const totalFavoritos = favoritos.length;
 
-  const getConquistasPorJogo = (jogoId) => {
-    return conquistas.filter(c => c.jogoId === jogoId || c.jogo?.id === jogoId).length;
+  const getConquistasDesbloqueadasPorJogo = (jogoId) => {
+    return conquistasDesbloqueadas.filter(c => c.jogoId === jogoId).length;
   };
 
-  const conquistasSekiro = getConquistasPorJogo(68);
-  const conquistasGhost = getConquistasPorJogo(67);
-  const totalSekiro = 12;
-  const totalGhost = 8;
-  
+  const getTotalConquistasJogo = (jogoId) => {
+    return totaisConquistas[jogoId] || 0;
+  };
+
   const jogoFavorito = favoritos.length > 0 ? favoritos[0] : (biblioteca.length > 0 ? biblioteca[0] : null);
   
   const metaProxima = 350;
-  const proximoMarcoRestante = Math.max(0, metaProxima - totalConquistas);
-  const progressoLenda = (totalConquistas / 500) * 100;
+  const proximoMarcoRestante = Math.max(0, metaProxima - totalConquistasDesbloqueadas);
+  const progressoLenda = (totalConquistasDesbloqueadas / 500) * 100;
 
   function formatarData(data) {
     return data ? new Date(data).toLocaleDateString("pt-BR") : "Não informado";
@@ -239,16 +246,8 @@ export default function PerfilUsuario() {
     return '🎮';
   }
 
-  const renderStars = (nota) => {
-    const stars = [];
-    const fullStars = Math.floor(nota);
-    const hasHalfStar = nota % 1 >= 0.5;
-    
-    for (let i = 0; i < fullStars; i++) stars.push('⭐');
-    if (hasHalfStar) stars.push('½');
-    for (let i = stars.length; i < 5; i++) stars.push('☆');
-    
-    return stars.join('');
+  const renderNota = (nota) => {
+    return `${nota}/10`;
   };
 
   const updateUserLocal = async (userId, data) => {
@@ -338,7 +337,7 @@ export default function PerfilUsuario() {
     reviewHeader: { display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.8rem' },
     reviewJogoImg: { width: '50px', height: '70px', objectFit: 'cover', borderRadius: '8px' },
     reviewJogoNome: { fontSize: '0.9rem', fontWeight: 600, color: 'white' },
-    reviewStars: { fontSize: '0.8rem', marginTop: '0.2rem' },
+    reviewNota: { fontSize: '0.8rem', fontWeight: 600, color: '#f5d742', marginTop: '0.2rem' },
     reviewComentario: { fontSize: '0.8rem', color: '#b0b8e0', lineHeight: 1.5, marginBottom: '0.5rem' },
     reviewData: { fontSize: '0.65rem', color: '#6e7cb3' }
   };
@@ -364,8 +363,8 @@ export default function PerfilUsuario() {
     return (
       <div style={styles.bibliotecaGrid}>
         {jogosParaRenderizar.map(jogo => {
-          const conquistasJogo = getConquistasPorJogo(jogo.id);
-          const totalJogo = jogo.conquistasTotal || (jogo.titulo === "Sekiro" || jogo.titulo === "Sekiro: Shadows Die Twice" ? 12 : 8);
+          const conquistasJogo = getConquistasDesbloqueadasPorJogo(jogo.id);
+          const totalJogo = getTotalConquistasJogo(jogo.id);
 
           return (
             <div key={jogo.id} style={styles.bibliotecaItem}>
@@ -419,10 +418,10 @@ export default function PerfilUsuario() {
               )}
               <div>
                 <h4 style={styles.reviewJogoNome}>{review.jogo}</h4>
-                <div style={styles.reviewStars}>{renderStars(review.nota || review.rating || 0)}</div>
+                <div style={styles.reviewNota}>{renderNota(review.nota || review.rating || 0)}</div>
               </div>
             </div>
-            <p style={styles.reviewComentario}>{review.comentario || review.descricao || "Sem comentário"}</p>
+            <p style={styles.reviewComentario}>{review.texto || review.comentario || "Sem comentário"}</p>
             <div style={styles.reviewData}>
               {formatarData(review.createdAt || review.data)}
             </div>
@@ -431,7 +430,69 @@ export default function PerfilUsuario() {
       </div>
     );
   };
+
+  const renderizarConquistas = () => {
+    if (loadingConquistas) {
+      return <div style={styles.emptyState}>Carregando conquistas...</div>;
+    }
+
+    if (conquistasDesbloqueadas.length === 0 && conquistasDisponiveis.length === 0) {
+      return (
+        <div style={styles.emptyState}>
+          🎮 Você não possui nenhuma conquista ainda
+          <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#6e7cb3' }}>
+            Complete desafios nos jogos para desbloquear conquistas!
+          </p>
+        </div>
+      );
+    }
+
     return (
+      <div>
+        {conquistasDesbloqueadas.length > 0 && (
+          <>
+            <div style={{ ...styles.progressCard, marginBottom: '1rem' }}>
+              <h3 style={{ color: '#e5e9ff', marginBottom: '0.5rem' }}>🏆 Suas Conquistas Desbloqueadas</h3>
+              {conquistasDesbloqueadas.map((c) => (
+                <div key={c.id} style={styles.conquestItem}>
+                  <div style={styles.conquestLeft}>
+                    <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
+                    <div>
+                      <h4 style={styles.conquestInfoH4}>{c.titulo} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
+                      <p style={styles.conquestInfoP}>{c.descricao || "Conquista do jogo"}</p>
+                    </div>
+                  </div>
+                  <div style={styles.conquestDate}>{c.pontos || 0} pts</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div style={styles.progressCard}>
+          <h3 style={{ color: '#e5e9ff', marginBottom: '0.5rem' }}>🏆 Conquistas disponíveis de acordo com sua biblioteca</h3>
+          {conquistasDisponiveis.length === 0 ? (
+            <div style={styles.emptyState}>Nenhuma conquista disponível para os jogos da sua biblioteca</div>
+          ) : (
+            conquistasDisponiveis.map((c) => (
+              <div key={c.id} style={styles.conquestItem}>
+                <div style={styles.conquestLeft}>
+                  <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
+                  <div>
+                    <h4 style={styles.conquestInfoH4}>{c.titulo} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
+                    <p style={styles.conquestInfoP}>{c.descricao || "Conquista do jogo"}</p>
+                  </div>
+                </div>
+                <div style={styles.conquestDate}>{c.pontos || 0} pts</div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
     <div style={styles.container}>
       <div style={styles.hero}>
         <img style={styles.heroBanner} src={banner} alt="banner" />
@@ -452,12 +513,12 @@ export default function PerfilUsuario() {
               <div style={styles.infoRow}>
                 <div style={styles.infoChip}>📍 {localizacao}</div>
                 <div style={styles.infoChip}>📅 Membro desde {formatarData(usuario.createdAt)}</div>
-                <div style={styles.infoChip}>🏆 {totalConquistas} Conquistas</div>
+                <div style={styles.infoChip}>🏆 {totalConquistasDesbloqueadas} Conquistas</div>
                 <div style={styles.infoChip}>❤️ {totalFavoritos} Favoritos</div>
               </div>
               <div style={styles.badgesRow}>
                 <div style={styles.badgeItem}>🏆 Mestre das Conquistas</div>
-                <div style={{ ...styles.badgeItem, ...styles.badgeGold }}>💎 {totalConquistas} Conquistas</div>
+                <div style={{ ...styles.badgeItem, ...styles.badgeGold }}>💎 {totalConquistasDesbloqueadas} Conquistas</div>
                 <div style={styles.badgeItem}>⚡ Caçador de Platina</div>
               </div>
             </div>
@@ -470,55 +531,38 @@ export default function PerfilUsuario() {
           <div style={styles.statCard}><span style={styles.statNumber}>{horasTotais}</span><span style={styles.statLabel}>Horas Jogadas</span></div>
           <div style={styles.statCard}><span style={styles.statNumber}>{totalJogos}</span><span style={styles.statLabel}>Jogos</span></div>
           <div style={styles.statCard}><span style={styles.statNumber}>{totalReviews}</span><span style={styles.statLabel}>Reviews</span></div>
-          <div style={styles.statCard}><span style={styles.statNumber}>{totalConquistas}</span><span style={styles.statLabel}>Conquistas</span></div>
+          <div style={styles.statCard}><span style={styles.statNumber}>{totalConquistasDesbloqueadas}</span><span style={styles.statLabel}>Conquistas</span></div>
           <div style={styles.statCard}><span style={styles.statNumber}>{totalFavoritos}</span><span style={styles.statLabel}>Favoritos</span></div>
         </div>
 
         <div style={styles.grid2col}>
           <div style={styles.conquestPanel}>
             <div style={styles.panelHeader}>
-              <h2 style={styles.panelHeaderH2}>🏅 Conquistas Recentes</h2>
+              <h2 style={styles.panelHeaderH2}>🏆 Conquistas</h2>
             </div>
             <div style={styles.conquestList}>
-              {loadingConquistas ? (
-                <div style={{ textAlign: 'center', padding: '2rem', color: '#6e7cb3' }}>
-                  Carregando conquistas...
-                </div>
-              ) : conquistas.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem', color: '#6e7cb3' }}>
-                  🎮 AINDA NENHUMA CONQUISTA
-                </div>
-              ) : (
-                conquistas.slice(0, 10).map((c) => (
-                  <div key={c.id} style={styles.conquestItem}>
-                    <div style={styles.conquestLeft}>
-                      <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
-                      <div>
-                        <h4 style={styles.conquestInfoH4}>{c.nome} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
-                        <p style={styles.conquestInfoP}>{c.descricao}</p>
-                      </div>
-                    </div>
-                    <div style={styles.conquestDate}>{formatarData(c.desbloqueadoEm || c.createdAt)}</div>
-                  </div>
-                ))
-              )}
+              {renderizarConquistas()}
             </div>
           </div>
 
           <div>
-            <div style={styles.progressCard}>
-              <div style={styles.jogoConquistaRow}><strong>⚔️ Sekiro: Shadows Die Twice</strong><span style={{ color: '#e5e9ff' }}>{conquistasSekiro}/{totalSekiro} conquistas</span></div>
-              <div style={styles.progressBar}>
-                <div style={{ ...styles.progressFill, width: totalSekiro > 0 ? (conquistasSekiro / totalSekiro) * 100 : 0 }}></div>
-              </div>
-            </div>
-
-            <div style={styles.progressCard}>
-              <div style={styles.jogoConquistaRow}><strong>🍃 Ghost of Tsushima</strong><span style={{ color: '#e5e9ff' }}>{conquistasGhost}/{totalGhost} conquistas</span></div>
-              <div style={styles.progressBar}>
-                <div style={{ ...styles.progressFill, width: totalGhost > 0 ? (conquistasGhost / totalGhost) * 100 : 0 }}></div>
-              </div>
-            </div>
+            {biblioteca.map((jogo) => {
+              const conquistasJogo = getConquistasDesbloqueadasPorJogo(jogo.id);
+              const totalJogo = getTotalConquistasJogo(jogo.id);
+              if (totalJogo === 0) return null;
+              
+              return (
+                <div key={jogo.id} style={styles.progressCard}>
+                  <div style={styles.jogoConquistaRow}>
+                    <strong>⚔️ {jogo.titulo}</strong>
+                    <span style={{ color: '#e5e9ff' }}>{conquistasJogo}/{totalJogo} conquistas</span>
+                  </div>
+                  <div style={styles.progressBar}>
+                    <div style={{ ...styles.progressFill, width: totalJogo > 0 ? (conquistasJogo / totalJogo) * 100 : 0 }}></div>
+                  </div>
+                </div>
+              );
+            })}
 
             <div style={styles.globalMilestone}>
               <div>
@@ -541,10 +585,10 @@ export default function PerfilUsuario() {
                 <div style={styles.conquistaProgresso}>
                   <div style={styles.jogoConquistaRow}>
                     <span>🏆 Conquistas</span>
-                    <span>{jogoFavorito.titulo === "Sekiro" || jogoFavorito.titulo === "Sekiro: Shadows Die Twice" ? `${conquistasSekiro}/${totalSekiro}` : `${conquistasGhost}/${totalGhost}`}</span>
+                    <span>{getConquistasDesbloqueadasPorJogo(jogoFavorito.id)}/{getTotalConquistasJogo(jogoFavorito.id)}</span>
                   </div>
                   <div style={styles.progressBar}>
-                    <div style={{ ...styles.progressFill, width: jogoFavorito.titulo === "Sekiro" || jogoFavorito.titulo === "Sekiro: Shadows Die Twice" ? (conquistasSekiro / totalSekiro) * 100 : (conquistasGhost / totalGhost) * 100 }}></div>
+                    <div style={{ ...styles.progressFill, width: getTotalConquistasJogo(jogoFavorito.id) > 0 ? (getConquistasDesbloqueadasPorJogo(jogoFavorito.id) / getTotalConquistasJogo(jogoFavorito.id)) * 100 : 0 }}></div>
                   </div>
                 </div>
               </div>
@@ -585,7 +629,7 @@ export default function PerfilUsuario() {
             style={{ ...styles.tabBtn, ...(ativos === "conquistas" ? styles.tabActive : {}) }} 
             onClick={() => setAtivos("conquistas")}
           >
-            🏆 Conquistas ({conquistas.length})
+            🏆 Conquistas ({conquistasDesbloqueadas.length})
           </button>
           <button 
             style={{ ...styles.tabBtn, ...(ativos === "reviews" ? styles.tabActive : {}) }} 
@@ -604,33 +648,7 @@ export default function PerfilUsuario() {
               
               {ativos === "favoritos" && renderizarJogos(favoritos, 'favoritos')}
 
-              {ativos === "conquistas" && (
-                loadingConquistas ? (
-                  <div style={styles.emptyState}>Carregando conquistas...</div>
-                ) : conquistas.length === 0 ? (
-                  <div style={styles.emptyState}>
-                    🎮 NENHUMA CONQUISTA AINDA
-                    <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#6e7cb3' }}>
-                      Complete desafios nos jogos para desbloquear conquistas!
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    {conquistas.map((c) => (
-                      <div key={c.id} style={styles.conquestItem}>
-                        <div style={styles.conquestLeft}>
-                          <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
-                          <div>
-                            <h4 style={styles.conquestInfoH4}>{c.nome} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
-                            <p style={styles.conquestInfoP}>{c.descricao}</p>
-                          </div>
-                        </div>
-                        <div style={styles.conquestDate}>{formatarData(c.desbloqueadoEm || c.createdAt)}</div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              )}
+              {ativos === "conquistas" && renderizarConquistas()}
 
               {ativos === "reviews" && renderizarReviews()}
             </>
