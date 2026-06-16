@@ -14,41 +14,6 @@ export default function Biblioteca() {
   const [favoritos, setFavoritos] = useState([]);
   const [favoritando, setFavoritando] = useState(false);
 
-  // Buscar conquistas de um jogo específico na API
-  const buscarConquistasDoJogo = async (jogoId) => {
-    try {
-      console.log(`Buscando conquistas do jogo ${jogoId} na API...`);
-      const response = await fetch(`${API}/conquistas?jogoId=${jogoId}`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`Conquistas do jogo ${jogoId} (API):`, data);
-        
-        let conquistasList = [];
-        if (data.itens) conquistasList = data.itens;
-        else if (data.conquistas) conquistasList = data.conquistas;
-        else if (Array.isArray(data)) conquistasList = data;
-        
-        return {
-          conquistas: conquistasList.length,
-          totalConquistas: conquistasList.length,
-          conquistasDetalhes: conquistasList
-        };
-      } else {
-        console.log(`API sem conquistas para o jogo ${jogoId}`);
-        return { conquistas: 0, totalConquistas: 0, conquistasDetalhes: [] };
-      }
-    } catch (error) {
-      console.error(`Erro ao buscar conquistas do jogo ${jogoId}:`, error);
-      return { conquistas: 0, totalConquistas: 0, conquistasDetalhes: [] };
-    }
-  };
-
   // Buscar apenas os jogos do usuário logado
   useEffect(() => {
     async function carregarBiblioteca() {
@@ -62,12 +27,11 @@ export default function Biblioteca() {
       try {
         console.log("=== BUSCANDO APENAS JOGOS DO USUÁRIO LOGADO ===");
         console.log("Usuário ID:", usuario.id);
-        console.log("Usuário matricula:", usuario.matricula);
         
         // Buscar jogos filtrando pelo autorId = id do usuário logado
         const response = await fetch(`${API}/jogos?autorId=${usuario.id}`, {
           headers: {
-            "Authorization": `Bearer ${token}`,
+            "token": `${token}`,
             "Content-Type": "application/json"
           }
         });
@@ -94,9 +58,9 @@ export default function Biblioteca() {
                            jogo.criadorId === usuario.id;
             
             if (isAutor) {
-              console.log(`✅ Jogo do usuário: ${jogo.titulo} (ID: ${jogo.id}, autorId: ${jogo.autorId})`);
+              console.log(`✅ Jogo do usuário: ${jogo.titulo} (ID: ${jogo.id})`);
             } else {
-              console.log(`❌ Jogo ignorado (não é do usuário): ${jogo.titulo} (autorId: ${jogo.autorId})`);
+              console.log(`❌ Jogo ignorado: ${jogo.titulo} (autorId: ${jogo.autorId})`);
             }
             
             return isAutor;
@@ -111,24 +75,10 @@ export default function Biblioteca() {
             return;
           }
           
-          // Buscar conquistas para cada jogo do usuário
-          const jogosComConquistas = await Promise.all(
-            jogosDoUsuario.map(async (jogo) => {
-              const conquistasInfo = await buscarConquistasDoJogo(jogo.id);
-              return {
-                ...jogo,
-                conquistas: conquistasInfo.conquistas,
-                totalConquistas: conquistasInfo.totalConquistas,
-                conquistasDetalhes: conquistasInfo.conquistasDetalhes
-              };
-            })
-          );
+          setJogos(jogosDoUsuario);
           
-          console.log("Jogos finais do usuário:", jogosComConquistas.map(j => j.titulo));
-          setJogos(jogosComConquistas);
-          
-          if (jogosComConquistas.length > 0) {
-            setJogoSelecionado(jogosComConquistas[0]);
+          if (jogosDoUsuario.length > 0) {
+            setJogoSelecionado(jogosDoUsuario[0]);
           }
         } else {
           console.error("Erro ao buscar jogos:", response.status);
@@ -232,10 +182,6 @@ export default function Biblioteca() {
               <img src={jogo.capaUrl} alt={jogo.titulo} />
               <div>
                 <h4>{jogo.titulo}</h4>
-                <span>{jogo.horasJogadas || 0} horas</span>
-                <div className="conquistas-info">
-                  🏆 {jogo.conquistas || 0}/{jogo.totalConquistas || 0} conquistas
-                </div>
               </div>
             </div>
           ))}
@@ -267,53 +213,9 @@ export default function Biblioteca() {
               </div>
             </div>
 
-            <div className="library-stats">
-              <div className="stat-box">
-                <h3>{jogoSelecionado.horasJogadas || 0}</h3>
-                <span>Horas jogadas</span>
-              </div>
-              <div className="stat-box">
-                <h3>{jogoSelecionado.conquistas || 0} / {jogoSelecionado.totalConquistas || 0}</h3>
-                <span>Conquistas</span>
-              </div>
-              <div className="stat-box">
-                <h3>{jogoSelecionado.ultimaVez
-                    ? new Date(jogoSelecionado.ultimaVez).toLocaleDateString("pt-BR")
-                    : "Nunca"}
-                </h3>
-                <span>Última sessão</span>
-              </div>
-            </div>
-
             <div className="library-about">
               <h2>Sobre este jogo</h2>
               <p>{jogoSelecionado.sinopse || jogoSelecionado.descricao}</p>
-            </div>
-
-            {/* Seção de Conquistas do jogo */}
-            <div className="library-conquistas">
-              <h2>🏆 Conquistas do Jogo</h2>
-              {jogoSelecionado.conquistasDetalhes && jogoSelecionado.conquistasDetalhes.length > 0 ? (
-                <div className="conquistas-grid">
-                  {jogoSelecionado.conquistasDetalhes.map((conquista, index) => (
-                    <div key={index} className="conquista-card">
-                      <div className="conquista-icon">
-                        {conquista.tipo === "ouro" ? "🥇" : conquista.tipo === "prata" ? "🥈" : conquista.tipo === "bronze" ? "🥉" : "🏅"}
-                      </div>
-                      <div className="conquista-info">
-                        <h4>{conquista.nome}</h4>
-                        <p>{conquista.descricao}</p>
-                        <span className="conquista-tipo">{conquista.tipo || "Conquista"}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="nenhuma-conquista">
-                  <p></p>
-                  <p className="conquista-hint"></p>
-                </div>
-              )}
             </div>
 
             <div className="library-gallery">

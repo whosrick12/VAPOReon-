@@ -129,6 +129,72 @@
   line-height: 1.6;
 }
 
+/* Botões organizados */
+.botoes-container {
+  display: flex;
+  gap: 20px;
+  margin-top: 30px;
+  max-width: 500px;
+}
+
+.btn-play {
+  flex: 1;
+  height: 50px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-play:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+}
+
+.btn-favorito {
+  flex: 1;
+  height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-favorito:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-favorito.favorito-ativo {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.btn-favorito:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Stats */
 .library-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -233,109 +299,74 @@
   font-size: 22px;
 }
 
-.botoes-container {
+/* Conquistas */
+.conquistas-info {
+  font-size: 0.65rem;
+  color: #a9b6ff;
+  margin-top: 0.3rem;
   display: flex;
-  flex-direction: row;
-  gap: 15px;
-  margin-top: 25px;
   align-items: center;
+  gap: 0.3rem;
 }
 
-.btn-play {
-  flex: 1;
-  height: 55px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
+.library-conquistas {
+  margin: 25px;
+  padding: 20px;
+  background: rgba(13, 15, 25, 0.6);
+  border-radius: 16px;
+}
+
+.library-conquistas h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #eef2ff;
+}
+
+.conquistas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.conquista-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 0.8rem;
+  display: flex;
+  gap: 0.8rem;
+  transition: all 0.3s;
+}
+
+.conquista-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(5px);
+}
+
+.conquista-icon {
+  font-size: 2rem;
+}
+
+.conquista-info h4 {
+  font-size: 0.85rem;
   color: white;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
+  margin-bottom: 0.2rem;
 }
 
-.btn-play:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0 18px #2563eb, 0 0 35px rgba(37, 99, 235, 0.45);
+.conquista-info p {
+  font-size: 0.7rem;
+  color: #8d99cf;
+  margin-bottom: 0.3rem;
 }
 
-.btn-favorito {
-  flex: 1;
-  height: 55px;
-  border: none;
-  border-radius: 10px;
-  background: rgba(30, 30, 30, 0.55);
-  color: #fff;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.conquista-tipo {
+  font-size: 0.6rem;
+  background: rgba(26, 110, 255, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  color: #a9b6ff;
 }
 
-.btn-favorito::before,
-.btn-favorito::after {
-  content: "";
-  position: absolute;
-  inset: -70%;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.06), transparent 55%);
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.btn-favorito::before {
-  animation: waveMove 7s linear infinite;
-}
-
-.btn-favorito::after {
-  animation: waveMove2 10s linear infinite;
-}
-
-.btn-favorito:hover {
-  transform: translateY(-3px);
-  background: rgba(139, 92, 246, 0.25);
-  border-color: rgba(139, 92, 246, 0.4);
-}
-
-.btn-favorito.favorito-ativo {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
-}
-
-.btn-favorito:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-@keyframes waveMove {
-  0% {
-    transform: translate(-10%, -10%) rotate(0deg);
-  }
-  50% {
-    transform: translate(10%, 10%) rotate(180deg);
-  }
-  100% {
-    transform: translate(-10%, -10%) rotate(360deg);
-  }
-}
-
-@keyframes waveMove2 {
-  0% {
-    transform: translate(10%, 10%) rotate(0deg);
-  }
-  50% {
-    transform: translate(-10%, -10%) rotate(180deg);
-  }
-  100% {
-    transform: translate(10%, 10%) rotate(360deg);
-  }
-}
-
+/* Responsivo */
 @media (max-width: 1100px) {
   .library-page {
     flex-direction: column;
@@ -353,6 +384,10 @@
 
   .library-overlay h1 {
     font-size: 38px;
+  }
+  
+  .botoes-container {
+    max-width: 100%;
   }
 }
 
@@ -375,145 +410,12 @@
 
   .botoes-container {
     flex-direction: column;
+    gap: 12px;
   }
 
   .btn-play,
   .btn-favorito {
     width: 100%;
+    height: 48px;
   }
-}
-/* Adicione ao final do Biblioteca.css */
-
-.conquistas-badge {
-  display: inline-block;
-  background: rgba(26, 110, 255, 0.2);
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.65rem;
-  margin-top: 0.3rem;
-  color: #a9b6ff;
-}
-
-.library-conquistas {
-  margin-top: 2rem;
-  padding: 1rem;
-  background: rgba(13, 15, 25, 0.6);
-  border-radius: 16px;
-}
-
-.library-conquistas h2 {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  color: #eef2ff;
-}
-
-.conquistas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-}
-
-.conquista-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 0.8rem;
-  display: flex;
-  gap: 0.8rem;
-  transition: all 0.3s;
-}
-
-.conquista-card:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateX(5px);
-}
-
-.conquista-icon {
-  font-size: 2rem;
-}
-
-.conquista-info h4 {
-  font-size: 0.85rem;
-  color: white;
-  margin-bottom: 0.2rem;
-}
-
-.conquista-info p {
-  font-size: 0.7rem;
-  color: #8d99cf;
-  margin-bottom: 0.3rem;
-}
-
-.conquista-tipo {
-  font-size: 0.6rem;
-  background: rgba(26, 110, 255, 0.3);
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  color: #a9b6ff;
-}
-/* Adicione ao final do Biblioteca.css */
-
-.conquistas-info {
-  font-size: 0.65rem;
-  color: #a9b6ff;
-  margin-top: 0.3rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.library-conquistas {
-  margin-top: 2rem;
-  padding: 1rem;
-  background: rgba(13, 15, 25, 0.6);
-  border-radius: 16px;
-}
-
-.library-conquistas h2 {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  color: #eef2ff;
-}
-
-.conquistas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-}
-
-.conquista-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 0.8rem;
-  display: flex;
-  gap: 0.8rem;
-  transition: all 0.3s;
-}
-
-.conquista-card:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateX(5px);
-}
-
-.conquista-icon {
-  font-size: 2rem;
-}
-
-.conquista-info h4 {
-  font-size: 0.85rem;
-  color: white;
-  margin-bottom: 0.2rem;
-}
-
-.conquista-info p {
-  font-size: 0.7rem;
-  color: #8d99cf;
-  margin-bottom: 0.3rem;
-}
-
-.conquista-tipo {
-  font-size: 0.6rem;
-  background: rgba(26, 110, 255, 0.3);
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  color: #a9b6ff;
 }

@@ -12,7 +12,7 @@ export default function Header({ jogos = [] }) {
   const searchRef = useRef(null);
   const [headerScrolled, setHeaderScrolled] = useState(false);
 
-  // Detecta scroll para adicionar classe de sombra
+  
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {

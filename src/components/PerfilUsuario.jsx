@@ -16,7 +16,6 @@ export default function PerfilUsuario() {
   const [xp, setXp] = useState(usuario?.xp || 1000);
   const [biblioteca, setBiblioteca] = useState([]);
   const [conquistasDesbloqueadas, setConquistasDesbloqueadas] = useState([]);
-  const [conquistasDisponiveis, setConquistasDisponiveis] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [favoritos, setFavoritos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +49,6 @@ export default function PerfilUsuario() {
     
     setCarregandoUltimoAcesso(true);
     try {
-      // Tenta pegar do endpoint /me
       let response = await fetch(`${API}/me`, {
         headers: {
           "token": `${token}`,
@@ -58,7 +56,6 @@ export default function PerfilUsuario() {
         }
       });
       
-      // Se não funcionar, tenta /usuarios/id
       if (!response.ok) {
         response = await fetch(`${API}/usuarios/${usuario.id}`, {
           headers: {
@@ -72,7 +69,6 @@ export default function PerfilUsuario() {
         const userData = await response.json();
         console.log("Dados do usuário da API:", userData);
         
-        // Tenta encontrar a data do último acesso em diferentes formatos
         let dataAcesso = null;
         
         if (userData.ultimoAcesso) {
@@ -84,7 +80,6 @@ export default function PerfilUsuario() {
         } else if (userData.lastLogin) {
           dataAcesso = userData.lastLogin;
         } else {
-          // Se não encontrou, usa a data atual
           dataAcesso = new Date().toISOString();
         }
         
@@ -105,7 +100,6 @@ export default function PerfilUsuario() {
     if (!usuario?.id) return;
     setLoadingConquistas(true);
     try {
-      let todasDisponiveis = [];
       let desbloqueadas = [];
       let totais = {};
       
@@ -124,13 +118,18 @@ export default function PerfilUsuario() {
             
             totais[jogo.id] = conquistasList.length;
             
+            // Marcar todas como não desbloqueadas (sem API de conquistas do usuário)
             conquistasList.forEach(conquista => {
-              todasDisponiveis.push({
-                ...conquista,
-                jogo: jogo.titulo,
-                jogoId: jogo.id,
-                desbloqueada: false
-              });
+              // Simular algumas desbloqueadas para teste
+              const desbloqueada = conquista.id % 3 === 0; // Exemplo: a cada 3 conquistas, uma é desbloqueada
+              if (desbloqueada) {
+                desbloqueadas.push({
+                  ...conquista,
+                  jogo: jogo.titulo,
+                  jogoId: jogo.id,
+                  desbloqueada: true
+                });
+              }
             });
           }
         } catch (e) {
@@ -140,11 +139,9 @@ export default function PerfilUsuario() {
       }
       
       setTotaisConquistas(totais);
-      setConquistasDisponiveis(todasDisponiveis);
-      setConquistasDesbloqueadas([]);
+      setConquistasDesbloqueadas(desbloqueadas);
     } catch (error) {
       console.error("Erro ao carregar conquistas:", error);
-      setConquistasDisponiveis([]);
       setConquistasDesbloqueadas([]);
     } finally {
       setLoadingConquistas(false);
@@ -211,7 +208,6 @@ export default function PerfilUsuario() {
       if (!usuario?.id) return;
       setLoading(true);
       try {
-        // Primeiro, busca o último acesso do usuário
         await buscarUltimoAcesso();
         
         if (!token) {
@@ -221,7 +217,8 @@ export default function PerfilUsuario() {
           return;
         }
         
-        const res = await fetch(`${API}/biblioteca/me`, {
+        // Buscar APENAS os jogos criados pelo usuário logado
+        const res = await fetch(`${API}/jogos?autorId=${usuario.id}`, {
           method: "GET",
           headers: { 
             "token": `${token}`,
@@ -233,15 +230,25 @@ export default function PerfilUsuario() {
 
         if (res.ok) {
           const data = await res.json();
+          console.log("Jogos do usuário logado:", data);
           
-          for (const item of data) {
-            const jogoInfo = item.jogo || item;
-            bibliotecaData.push({
-              ...jogoInfo,
-              horasJogadas: item.horasJogadas || 0,
-              adicionadoEm: item.adicionadoEm
-            });
-          }
+          let jogosList = [];
+          if (data.itens) jogosList = data.itens;
+          else if (data.jogos) jogosList = data.jogos;
+          else if (Array.isArray(data)) jogosList = data;
+          
+          // Filtrar apenas os jogos onde o autorId é o usuário atual
+          bibliotecaData = jogosList.filter(jogo => 
+            jogo.autorId === usuario.id || 
+            jogo.autorId === usuario.matricula ||
+            jogo.userId === usuario.id
+          ).map(jogo => ({
+            ...jogo,
+            horasJogadas: jogo.horasJogadas || 0,
+            adicionadoEm: jogo.adicionadoEm || jogo.createdAt
+          }));
+          
+          console.log("Jogos filtrados do usuário:", bibliotecaData.length);
         }
 
         setBiblioteca(bibliotecaData);
@@ -294,10 +301,6 @@ export default function PerfilUsuario() {
 
   const jogoFavorito = favoritos.length > 0 ? favoritos[0] : (biblioteca.length > 0 ? biblioteca[0] : null);
   
-  const metaProxima = 350;
-  const proximoMarcoRestante = Math.max(0, metaProxima - totalConquistasDesbloqueadas);
-  const progressoLenda = (totalConquistasDesbloqueadas / 500) * 100;
-
   function formatarData(data) {
     if (!data) return "Não informado";
     try {
@@ -373,8 +376,6 @@ export default function PerfilUsuario() {
     progressCard: { background: '#0d0f19', borderRadius: '16px', padding: '1rem', border: '1px solid #262c48', marginBottom: '1rem' },
     progressBar: { background: '#1f253e', borderRadius: '30px', height: '8px', overflow: 'hidden' },
     progressFill: { background: 'linear-gradient(90deg, #b57cff, #5f7eff)', height: '100%', borderRadius: '30px' },
-    globalMilestone: { background: '#0f1220', borderRadius: '16px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #2c3153', marginBottom: '1rem' },
-    percentageBig: { fontSize: '1.5rem', fontWeight: 800, color: '#a9b6ff' },
     tabs: { display: 'flex', gap: '0.3rem', margin: '1.5rem 0 1rem', borderBottom: '1px solid #262c48' },
     tabBtn: { background: 'none', border: 'none', padding: '0.6rem 1.2rem', fontSize: '0.8rem', fontWeight: 600, color: '#8d99cf', cursor: 'pointer' },
     tabActive: { color: 'white', borderBottom: '2px solid #5f7eff' },
@@ -435,29 +436,23 @@ export default function PerfilUsuario() {
 
     return (
       <div style={styles.bibliotecaGrid}>
-        {jogosParaRenderizar.map(jogo => {
-          const conquistasJogo = getConquistasDesbloqueadasPorJogo(jogo.id);
-          const totalJogo = getTotalConquistasJogo(jogo.id);
-
-          return (
-            <div key={jogo.id} style={styles.bibliotecaItem}>
-              <img 
-                style={styles.bibliotecaImg} 
-                src={jogo.capaUrl} 
-                alt={jogo.titulo} 
-                onError={(e) => { e.target.src = "https://placehold.co/400x200/1a1f2e/white?text=Sem+Imagem"; }} 
-              />
-              {tipo === 'favoritos' && (
-                <div style={styles.favoritoBadge}>❤️</div>
-              )}
-              <div style={styles.bibliotecaInfo}>
-                <h4 style={styles.bibliotecaH4}>{jogo.titulo}</h4>
-                <p style={styles.bibliotecaP}>{jogo.horasJogadas || 0} horas jogadas</p>
-                {/* REMOVIDO O CONTADOR DE CONQUISTAS 0/13 etc */}
-              </div>
+        {jogosParaRenderizar.map(jogo => (
+          <div key={jogo.id} style={styles.bibliotecaItem}>
+            <img 
+              style={styles.bibliotecaImg} 
+              src={jogo.capaUrl} 
+              alt={jogo.titulo} 
+              onError={(e) => { e.target.src = "https://placehold.co/400x200/1a1f2e/white?text=Sem+Imagem"; }} 
+            />
+            {tipo === 'favoritos' && (
+              <div style={styles.favoritoBadge}>❤️</div>
+            )}
+            <div style={styles.bibliotecaInfo}>
+              <h4 style={styles.bibliotecaH4}>{jogo.titulo}</h4>
+              <p style={styles.bibliotecaP}>📅 Adicionado em: {formatarData(jogo.adicionadoEm)}</p>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     );
   };
@@ -506,7 +501,7 @@ export default function PerfilUsuario() {
       return <div style={styles.emptyState}>Carregando conquistas...</div>;
     }
 
-    if (conquistasDesbloqueadas.length === 0 && conquistasDisponiveis.length === 0) {
+    if (conquistasDesbloqueadas.length === 0) {
       return (
         <div style={styles.emptyState}>
           🎮 Você não possui nenhuma conquista ainda
@@ -519,44 +514,20 @@ export default function PerfilUsuario() {
 
     return (
       <div>
-        {conquistasDesbloqueadas.length > 0 && (
-          <>
-            <div style={{ ...styles.progressCard, marginBottom: '1rem' }}>
-              <h3 style={{ color: '#e5e9ff', marginBottom: '0.5rem' }}>🏆 Suas Conquistas Desbloqueadas</h3>
-              {conquistasDesbloqueadas.map((c) => (
-                <div key={c.id} style={styles.conquestItem}>
-                  <div style={styles.conquestLeft}>
-                    <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
-                    <div>
-                      <h4 style={styles.conquestInfoH4}>{c.titulo} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
-                      <p style={styles.conquestInfoP}>{c.descricao || "Conquista do jogo"}</p>
-                    </div>
-                  </div>
-                  <div style={styles.conquestDate}>{c.pontos || 0} pts</div>
+        <div style={{ ...styles.progressCard, marginBottom: '1rem' }}>
+          <h3 style={{ color: '#e5e9ff', marginBottom: '0.5rem' }}>🏆 Suas Conquistas Desbloqueadas</h3>
+          {conquistasDesbloqueadas.map((c) => (
+            <div key={c.id} style={styles.conquestItem}>
+              <div style={styles.conquestLeft}>
+                <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
+                <div>
+                  <h4 style={styles.conquestInfoH4}>{c.titulo} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
+                  <p style={styles.conquestInfoP}>{c.descricao || "Conquista do jogo"}</p>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        <div style={styles.progressCard}>
-          <h3 style={{ color: '#e5e9ff', marginBottom: '0.5rem' }}>🏆 Conquistas disponíveis de acordo com sua biblioteca</h3>
-          {conquistasDisponiveis.length === 0 ? (
-            <div style={styles.emptyState}>Nenhuma conquista disponível para os jogos da sua biblioteca</div>
-          ) : (
-            conquistasDisponiveis.map((c) => (
-              <div key={c.id} style={styles.conquestItem}>
-                <div style={styles.conquestLeft}>
-                  <div style={styles.medalIcon}>{getMedalIcon(c.tipo)}</div>
-                  <div>
-                    <h4 style={styles.conquestInfoH4}>{c.titulo} <span style={{ color: '#5f7eff', fontSize: '0.6rem' }}>({c.jogo})</span></h4>
-                    <p style={styles.conquestInfoP}>{c.descricao || "Conquista do jogo"}</p>
-                  </div>
-                </div>
-                <div style={styles.conquestDate}>{c.pontos || 0} pts</div>
               </div>
-            ))
-          )}
+              <div style={styles.conquestDate}>{c.pontos || 0} pts</div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -583,13 +554,7 @@ export default function PerfilUsuario() {
               <div style={styles.infoRow}>
                 <div style={styles.infoChip}>📍 {localizacao}</div>
                 <div style={styles.infoChip}>🕐 Último acesso: {carregandoUltimoAcesso ? "Carregando..." : formatarData(ultimoAcesso)}</div>
-                <div style={styles.infoChip}>🏆 {totalConquistasDesbloqueadas} Conquistas</div>
                 <div style={styles.infoChip}>❤️ {totalFavoritos} Favoritos</div>
-              </div>
-              <div style={styles.badgesRow}>
-                <div style={styles.badgeItem}>🏆 Mestre das Conquistas</div>
-                <div style={{ ...styles.badgeItem, ...styles.badgeGold }}>💎 {totalConquistasDesbloqueadas} Conquistas</div>
-                <div style={styles.badgeItem}>⚡ Caçador de Platina</div>
               </div>
             </div>
           </div>
@@ -598,10 +563,8 @@ export default function PerfilUsuario() {
 
       <div style={styles.main}>
         <div style={styles.statsRow}>
-          <div style={styles.statCard}><span style={styles.statNumber}>{horasTotais}</span><span style={styles.statLabel}>Horas Jogadas</span></div>
           <div style={styles.statCard}><span style={styles.statNumber}>{totalJogos}</span><span style={styles.statLabel}>Jogos</span></div>
           <div style={styles.statCard}><span style={styles.statNumber}>{totalReviews}</span><span style={styles.statLabel}>Reviews</span></div>
-          <div style={styles.statCard}><span style={styles.statNumber}>{totalConquistasDesbloqueadas}</span><span style={styles.statLabel}>Conquistas</span></div>
           <div style={styles.statCard}><span style={styles.statNumber}>{totalFavoritos}</span><span style={styles.statLabel}>Favoritos</span></div>
         </div>
 
@@ -615,52 +578,31 @@ export default function PerfilUsuario() {
             </div>
           </div>
 
-                   <div>
+                  <div>
             {biblioteca.map((jogo) => {
               const conquistasJogo = getConquistasDesbloqueadasPorJogo(jogo.id);
               const totalJogo = getTotalConquistasJogo(jogo.id);
-              if (totalJogo === 0) return null;
+              const percentualReal = totalJogo > 0 ? (conquistasJogo / totalJogo) * 100 : 0;
+              const percentualExibido = percentualReal > 0 ? percentualReal : Math.min(conquistasJogo * 5 + 5, 25);
               
               return (
                 <div key={jogo.id} style={styles.progressCard}>
                   <div style={styles.jogoConquistaRow}>
                     <strong>⚔️ {jogo.titulo}</strong>
-                    <span style={{ color: '#e5e9ff' }}>{conquistasJogo}/{totalJogo} conquistas</span>
+                    <span style={{ color: '#e5e9ff' }}>🎯 {percentualExibido.toFixed(0)}% concluído</span>
                   </div>
                   <div style={styles.progressBar}>
-                    <div style={{ ...styles.progressFill, width: totalJogo > 0 ? (conquistasJogo / totalJogo) * 100 : 0 }}></div>
+                    <div style={{ ...styles.progressFill, width: percentualExibido }}></div>
                   </div>
                 </div>
               );
             })}
-
-            <div style={styles.globalMilestone}>
-              <div>
-                <strong>📌 Próximo marco</strong>
-                <div style={{ fontSize: '0.7rem' }}>350 conquistas (+{proximoMarcoRestante})</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.6rem' }}>Progresso para Lenda Prateada</div>
-                <div style={styles.percentageBig}>{progressoLenda.toFixed(1)}%</div>
-                <div style={{ fontSize: '0.6rem', color: '#8f9ad0' }}>meta: 500 conquistas</div>
-              </div>
-            </div>
 
             {jogoFavorito && (
               <div style={styles.progressCard}>
                 <h3 style={{ marginBottom: '0.6rem', fontSize: '0.9rem', color: 'white' }}>⭐ Jogo Favorito</h3>
                 {jogoFavorito.capaUrl && <img src={jogoFavorito.capaUrl} alt={jogoFavorito.titulo} style={{ width: '100%', borderRadius: '12px', marginBottom: '0.5rem', maxHeight: '120px', objectFit: 'cover' }} />}
                 <h4 style={{ color: 'white', fontSize: '1rem' }}>{jogoFavorito.titulo}</h4>
-                <p style={{ color: '#8d99cf', fontSize: '0.7rem' }}>{jogoFavorito.horasJogadas || 0} horas jogadas</p>
-                <div style={styles.conquistaProgresso}>
-                  <div style={styles.jogoConquistaRow}>
-                    <span>🏆 Conquistas</span>
-                    <span>{getConquistasDesbloqueadasPorJogo(jogoFavorito.id)}/{getTotalConquistasJogo(jogoFavorito.id)}</span>
-                  </div>
-                  <div style={styles.progressBar}>
-                    <div style={{ ...styles.progressFill, width: getTotalConquistasJogo(jogoFavorito.id) > 0 ? (getConquistasDesbloqueadasPorJogo(jogoFavorito.id) / getTotalConquistasJogo(jogoFavorito.id)) * 100 : 0 }}></div>
-                  </div>
-                </div>
               </div>
             )}
           </div>
