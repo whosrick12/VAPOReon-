@@ -12,6 +12,40 @@ export default function CategoriaPage() {
   const [jogoSelecionado, setJogoSelecionado] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
 
+  // Lista de imagens de fallback (jogos REAIS hospedados no Cloudinary)
+  const imagensFallback = [
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580834/thelast_zxvx3i.jpg",      // The Last of Us
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580834/Black-Myth-Wukong_tgp8tn.jpg", // Black Myth: Wukong
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580833/dark-souls-remastered_pn596o.jpg", // Dark Souls
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580829/re4_arplj8.png",           // Resident Evil 4
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580831/days-gone-zombie-strike-poster-808vz2axmhw4zege_sqmwjr.jpg", // Days Gone
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580830/godw_utrvkr.png",         // God of War
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580829/elden_q1u1ki.jpg",         // Elden Ring
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580826/20221117-ovicio-red-dead-capa_tmlbiw.webp", // Red Dead Redemption
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580827/3a713d5c-b4cb-4672-acbd-5a1fdfac79d8_zq4zab.jpg", // Alternativa
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580827/gowR_ddobbo.webp",        // God of War Ragnarök
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580825/fundo-de-dying-light-869t85ft652ly3jc_ravpum.jpg", // Dying Light
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580825/F077DBEWIAYzW5L.jpg_mdmwfh.webp", // EA Sports FC
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580266/re4_igldoy.png",           // RE4 alternativo
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580827/a5h4887tvu4b1_oewrjg.jpg", // Alternativa
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580832/20230314-ovicio-outlast-2-capa_g3jhbo.webp" // Outlast 2
+  ];
+
+  // Função para pegar imagem de fallback baseada no ID do jogo
+  const getFallbackImage = (jogoId) => {
+    if (!jogoId) return imagensFallback[0];
+    const index = (jogoId % imagensFallback.length);
+    return imagensFallback[index];
+  };
+
+  // Função para tratar erro de imagem
+  const handleImageError = (e, jogoId) => {
+    const fallbackUrl = getFallbackImage(jogoId);
+    if (e.target.src !== fallbackUrl) {
+      e.target.src = fallbackUrl;
+    }
+  };
+
   const categoriaToNomeGenero = {
     "acao": "Ação",
     "rpg": "RPG",
@@ -113,12 +147,11 @@ export default function CategoriaPage() {
               <div key={jogo.id} className="jogo-card" onClick={() => abrirModal(jogo)}>
                 <div className="jogo-card-imagem-wrapper">
                   <img 
-                    src={jogo.capaUrl || "https://via.placeholder.com/280x160/1a6eff/white?text=Sem+Imagem"} 
+                    src={jogo.capaUrl || getFallbackImage(jogo.id)}
                     alt={jogo.titulo}
                     className="jogo-card-imagem"
-                    onError={(e) => {
-                      e.target.src = "https://via.placeholder.com/280x160/1a6eff/white?text=Sem+Imagem";
-                    }}
+                    onError={(e) => handleImageError(e, jogo.id)}
+                    loading="lazy"
                   />
                   <div className="jogo-card-overlay">
                     <button className="btn-overlay">Ver detalhes</button>
@@ -159,7 +192,7 @@ export default function CategoriaPage() {
             <button className="modal-close" onClick={fecharModal}>✕</button>
             <div 
               className="modal-banner"
-              style={{ backgroundImage: `url(${jogoSelecionado.capaUrl || "https://via.placeholder.com/800x250"})` }}
+              style={{ backgroundImage: `url(${jogoSelecionado.capaUrl || getFallbackImage(jogoSelecionado.id)})` }}
             >
               <div className="modal-banner-overlay">
                 <h2>{jogoSelecionado.titulo}</h2>

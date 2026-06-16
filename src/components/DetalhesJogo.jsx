@@ -30,6 +30,48 @@ export default function DetalheJogo({ jogos }) {
   const [adicionandoBiblioteca, setAdicionandoBiblioteca] = useState(false);
   const [mensagemBiblioteca, setMensagemBiblioteca] = useState("");
 
+  // Lista de imagens de fallback (jogos REAIS hospedados no Cloudinary)
+  const imagensFallback = [
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580834/thelast_zxvx3i.jpg",      // The Last of Us
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580834/Black-Myth-Wukong_tgp8tn.jpg", // Black Myth: Wukong
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580833/dark-souls-remastered_pn596o.jpg", // Dark Souls
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580829/re4_arplj8.png",           // Resident Evil 4
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580831/days-gone-zombie-strike-poster-808vz2axmhw4zege_sqmwjr.jpg", // Days Gone
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580830/godw_utrvkr.png",         // God of War
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580829/elden_q1u1ki.jpg",         // Elden Ring
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580826/20221117-ovicio-red-dead-capa_tmlbiw.webp", // Red Dead Redemption
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580827/3a713d5c-b4cb-4672-acbd-5a1fdfac79d8_zq4zab.jpg", // Alternativa
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580827/gowR_ddobbo.webp",        // God of War Ragnarök
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580825/fundo-de-dying-light-869t85ft652ly3jc_ravpum.jpg", // Dying Light
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580825/F077DBEWIAYzW5L.jpg_mdmwfh.webp", // EA Sports FC
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580266/re4_igldoy.png",           // RE4 alternativo
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580827/a5h4887tvu4b1_oewrjg.jpg", // Alternativa
+    "https://res.cloudinary.com/dt1bbluxk/image/upload/v1781580832/20230314-ovicio-outlast-2-capa_g3jhbo.webp" // Outlast 2
+  ];
+
+  // Função para pegar imagem de fallback baseada no ID do jogo
+  const getFallbackImage = (jogoId) => {
+    if (!jogoId) return imagensFallback[0];
+    const index = (jogoId % imagensFallback.length);
+    return imagensFallback[index];
+  };
+
+  // Função para tratar erro de imagem da capa
+  const handleImageError = (e, jogoId) => {
+    const fallbackUrl = getFallbackImage(jogoId);
+    if (e.target.src !== fallbackUrl) {
+      e.target.src = fallbackUrl;
+    }
+  };
+
+  // Função para tratar erro de imagem das miniaturas
+  const handleThumbError = (e, jogoId, index) => {
+    const fallbackUrl = getFallbackImage(jogoId + index);
+    if (e.target.src !== fallbackUrl) {
+      e.target.src = fallbackUrl;
+    }
+  };
+
   function formatarAno(dataString) {
     if (!dataString) return "Em breve";
     if (/^\d{4}$/.test(dataString)) return dataString;
@@ -227,7 +269,7 @@ export default function DetalheJogo({ jogos }) {
   const imagensExtras = jogo.imagens?.map(i => i.url) || [];
 
   const midias = [
-    { type: "image", url: jogo.capaUrl },
+    { type: "image", url: jogo.capaUrl || getFallbackImage(jogo.id) },
     ...imagensExtras.map(url => ({ type: "image", url })),
     ...(jogo.videoUrl ? [{ type: "video", url: jogo.videoUrl }] : [])
   ];
@@ -244,19 +286,6 @@ export default function DetalheJogo({ jogos }) {
     e.stopPropagation();
     if (midias.length <= 1) return;
     setMidiaIndex(prev => prev === 0 ? midias.length - 1 : prev - 1);
-  }
-
-  function getPrecoOriginal() {
-    if (jogo.desconto && jogo.desconto > 0) {
-      const precoOriginal = jogo.preco / (1 - jogo.desconto / 100);
-      return precoOriginal.toFixed(2);
-    }
-    return (jogo.preco * 1.25).toFixed(2);
-  }
-
-  function getPercentualDesconto() {
-    if (jogo.desconto && jogo.desconto > 0) return jogo.desconto;
-    return 25;
   }
 
   const renderStars = (nota) => {
@@ -290,7 +319,7 @@ export default function DetalheJogo({ jogos }) {
 
   return (
     <div className="detalhe-page">
-      <div className="hero-background" style={{ backgroundImage: `url(${jogo.capaUrl})` }}>
+      <div className="hero-background" style={{ backgroundImage: `url(${jogo.capaUrl || getFallbackImage(jogo.id)})` }}>
         <div className="hero-overlay">
           <div className="detalhe-container">
             <h1 className="game-title">{jogo.titulo}</h1>
@@ -302,7 +331,12 @@ export default function DetalheJogo({ jogos }) {
                   {midiaAtual?.type === "video" ? (
                     <video key={midiaAtual.url} controls autoPlay muted src={midiaAtual.url} />
                   ) : (
-                    <img key={midiaAtual.url} src={midiaAtual.url} alt={jogo.titulo} />
+                    <img 
+                      key={midiaAtual.url} 
+                      src={midiaAtual.url} 
+                      alt={jogo.titulo}
+                      onError={(e) => handleImageError(e, jogo.id)}
+                    />
                   )}
                   <button type="button" className="arrow right" onClick={next}>❯</button>
                 </div>
@@ -313,7 +347,11 @@ export default function DetalheJogo({ jogos }) {
                       {m.type === "video" ? (
                         <video src={m.url} muted />
                       ) : (
-                        <img src={m.url} alt="" />
+                        <img 
+                          src={m.url} 
+                          alt=""
+                          onError={(e) => handleThumbError(e, jogo.id, i)}
+                        />
                       )}
                     </div>
                   ))}
@@ -449,16 +487,17 @@ export default function DetalheJogo({ jogos }) {
               </div>
 
               <div className="detalhe-info">
-                <img className="game-cover" src={jogo.capaUrl} alt={jogo.titulo} />
+                <img 
+                  className="game-cover" 
+                  src={jogo.capaUrl || getFallbackImage(jogo.id)} 
+                  alt={jogo.titulo}
+                  onError={(e) => handleImageError(e, jogo.id)}
+                />
                 <p className="desc">{jogo.descricao || jogo.sinopse || "Sem descrição disponível."}</p>
 
                 <div className="price-card">
-                  <div className="discount-row">
-                    <span className="discount">-{getPercentualDesconto()}%</span>
-                    <div>
-                      <small className="old-price">R$ {getPrecoOriginal()}</small>
-                      <h2 className="new-price">R$ {jogo.preco}</h2>
-                    </div>
+                  <div className="price-single">
+                    <h2 className="game-price">R$ {jogo.preco}</h2>
                   </div>
                   
                   <button 

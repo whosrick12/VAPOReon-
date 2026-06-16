@@ -10,6 +10,20 @@ export default function Header({ jogos = [] }) {
   const [resultados, setResultados] = useState([]);
   const [mostrarResultados, setMostrarResultados] = useState(false);
   const searchRef = useRef(null);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+
+  // Detecta scroll para adicionar classe de sombra
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setHeaderScrolled(true);
+      } else {
+        setHeaderScrolled(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -46,7 +60,7 @@ export default function Header({ jogos = [] }) {
   }
 
   return (
-    <header className="header">
+    <header className={`header ${headerScrolled ? "header-scrolled" : ""}`}>
       <div
         className="logo-container"
         onClick={() => navigate("/")}
@@ -68,7 +82,6 @@ export default function Header({ jogos = [] }) {
         <a href="/meus-jogos" onClick={(e) => { e.preventDefault(); navigate("/meus-jogos"); }}>Meus Jogos</a>
         <a href="/perfil" onClick={(e) => { e.preventDefault(); navigate("/perfil"); }}>Meu Perfil</a>
         <a href="/biblioteca" onClick={(e) => { e.preventDefault(); navigate("/biblioteca"); }}>Library</a>
-        <a href="/support" onClick={(e) => e.preventDefault()}>Support</a>
       </nav>
 
       <div className="search-container" ref={searchRef}>

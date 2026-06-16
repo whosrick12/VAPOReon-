@@ -24,6 +24,8 @@ export default function PerfilUsuario() {
   const [loadingConquistas, setLoadingConquistas] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [totaisConquistas, setTotaisConquistas] = useState({});
+  const [ultimoAcesso, setUltimoAcesso] = useState(null);
+  const [carregandoUltimoAcesso, setCarregandoUltimoAcesso] = useState(true);
 
   const carregarFavoritos = (bibliotecaData) => {
     const userKey = usuario?.matricula || usuario?.id || usuario?.email;
@@ -37,6 +39,66 @@ export default function PerfilUsuario() {
     }).filter(jogo => jogo !== null);
     
     setFavoritos(jogosFavoritados);
+  };
+
+  // Função para buscar o último acesso do usuário
+  const buscarUltimoAcesso = async () => {
+    if (!usuario?.id) {
+      setCarregandoUltimoAcesso(false);
+      return;
+    }
+    
+    setCarregandoUltimoAcesso(true);
+    try {
+      // Tenta pegar do endpoint /me
+      let response = await fetch(`${API}/me`, {
+        headers: {
+          "token": `${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      
+      // Se não funcionar, tenta /usuarios/id
+      if (!response.ok) {
+        response = await fetch(`${API}/usuarios/${usuario.id}`, {
+          headers: {
+            "token": `${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+      }
+      
+      if (response.ok) {
+        const userData = await response.json();
+        console.log("Dados do usuário da API:", userData);
+        
+        // Tenta encontrar a data do último acesso em diferentes formatos
+        let dataAcesso = null;
+        
+        if (userData.ultimoAcesso) {
+          dataAcesso = userData.ultimoAcesso;
+        } else if (userData.lastAccess) {
+          dataAcesso = userData.lastAccess;
+        } else if (userData.updatedAt) {
+          dataAcesso = userData.updatedAt;
+        } else if (userData.lastLogin) {
+          dataAcesso = userData.lastLogin;
+        } else {
+          // Se não encontrou, usa a data atual
+          dataAcesso = new Date().toISOString();
+        }
+        
+        setUltimoAcesso(dataAcesso);
+      } else {
+        console.error("Erro ao buscar dados do usuário:", response.status);
+        setUltimoAcesso(new Date().toISOString());
+      }
+    } catch (error) {
+      console.error("Erro na requisição dos dados do usuário:", error);
+      setUltimoAcesso(new Date().toISOString());
+    } finally {
+      setCarregandoUltimoAcesso(false);
+    }
   };
 
   const carregarConquistas = async () => {
@@ -149,6 +211,9 @@ export default function PerfilUsuario() {
       if (!usuario?.id) return;
       setLoading(true);
       try {
+        // Primeiro, busca o último acesso do usuário
+        await buscarUltimoAcesso();
+        
         if (!token) {
           setBiblioteca([]);
           carregarFavoritos([]);
@@ -234,7 +299,15 @@ export default function PerfilUsuario() {
   const progressoLenda = (totalConquistasDesbloqueadas / 500) * 100;
 
   function formatarData(data) {
-    return data ? new Date(data).toLocaleDateString("pt-BR") : "Não informado";
+    if (!data) return "Não informado";
+    try {
+      const dataObj = new Date(data);
+      if (isNaN(dataObj.getTime())) return "Não informado";
+      return dataObj.toLocaleDateString("pt-BR");
+    } catch (error) {
+      console.error("Erro ao formatar data:", error);
+      return "Não informado";
+    }
   }
 
   function getMedalIcon(tipo) {
@@ -341,7 +414,7 @@ export default function PerfilUsuario() {
     reviewComentario: { fontSize: '0.8rem', color: '#b0b8e0', lineHeight: 1.5, marginBottom: '0.5rem' },
     reviewData: { fontSize: '0.65rem', color: '#6e7cb3' }
   };
-
+  
   const renderizarJogos = (jogosParaRenderizar, tipo = 'biblioteca') => {
     if (jogosParaRenderizar.length === 0) {
       return (
@@ -380,10 +453,7 @@ export default function PerfilUsuario() {
               <div style={styles.bibliotecaInfo}>
                 <h4 style={styles.bibliotecaH4}>{jogo.titulo}</h4>
                 <p style={styles.bibliotecaP}>{jogo.horasJogadas || 0} horas jogadas</p>
-                <p style={styles.bibliotecaP}>🏆 {conquistasJogo}/{totalJogo} conquistas</p>
-                <div style={{ ...styles.progressBar, marginTop: '0.5rem' }}>
-                  <div style={{ ...styles.progressFill, width: totalJogo > 0 ? (conquistasJogo / totalJogo) * 100 : 0 }}></div>
-                </div>
+                {/* REMOVIDO O CONTADOR DE CONQUISTAS 0/13 etc */}
               </div>
             </div>
           );
@@ -512,7 +582,7 @@ export default function PerfilUsuario() {
               </div>
               <div style={styles.infoRow}>
                 <div style={styles.infoChip}>📍 {localizacao}</div>
-                <div style={styles.infoChip}>📅 Membro desde {formatarData(usuario.createdAt)}</div>
+                <div style={styles.infoChip}>🕐 Último acesso: {carregandoUltimoAcesso ? "Carregando..." : formatarData(ultimoAcesso)}</div>
                 <div style={styles.infoChip}>🏆 {totalConquistasDesbloqueadas} Conquistas</div>
                 <div style={styles.infoChip}>❤️ {totalFavoritos} Favoritos</div>
               </div>
@@ -545,7 +615,7 @@ export default function PerfilUsuario() {
             </div>
           </div>
 
-          <div>
+                   <div>
             {biblioteca.map((jogo) => {
               const conquistasJogo = getConquistasDesbloqueadasPorJogo(jogo.id);
               const totalJogo = getTotalConquistasJogo(jogo.id);

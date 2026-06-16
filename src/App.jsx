@@ -7,8 +7,8 @@ import CardPrincipal from "./components/CardPrincipal";
 import Header from "./components/Header";
 import CardsPromocoes from "./components/CardsPromocoes";
 import DetalheJogo from "./components/DetalhesJogo";
-import PopupPromocao from "./components/PopupPromocao";
 import ExploreCategorias from "./components/ExploreCategorias";
+import ListaJogos from "./components/ListaJogos";
 import Login from "./components/Login";
 import PerfilUsuario from "./components/PerfilUsuario";
 import Biblioteca from "./components/Biblioteca";
@@ -25,10 +25,6 @@ function AppContent() {
   const location = useLocation();
   const { usuario } = useAuth();
 
-  const podeMostrarPopup =
-    usuario &&
-    location.pathname === "/";
-  
   const mostrarHeroVideo = location.pathname === "/";
 
   useEffect(() => {
@@ -104,10 +100,6 @@ function AppContent() {
       
       {mostrarHeroVideo && <HeroVideo />}
 
-      {podeMostrarPopup && jogos.length > 0 && (
-        <PopupPromocao jogos={jogos} />
-      )}
-
       <Routes>
         <Route path="/login" element={<Login />} />
 
@@ -125,6 +117,7 @@ function AppContent() {
                 )}
                 <CardsPromocoes jogos={jogos} />
                 <ExploreCategorias />
+                <ListaJogos />
               </>
             </ProtectedRoute>
           }
